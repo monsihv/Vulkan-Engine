@@ -14,7 +14,7 @@ LDFLAGS = \
 	-framework IOKit \
 	-framework CoreVideo
 
-CPP = $(wildcard src/main.cpp)
+CPP = $(wildcard src/*.cpp)
 OBJ = $(CPP:src/%.cpp=build/%.o)
 
 main: build/main

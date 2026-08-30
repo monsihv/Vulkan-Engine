@@ -1,7 +1,10 @@
 #include <iostream>
 
+#include "headers/base.h"
+
 int main() {
-    std::cout << "hello world\n";
+    Renderer renderer;
+    renderer.run(800, 600);
 
     return 0;
 }
