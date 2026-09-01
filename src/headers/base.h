@@ -8,12 +8,16 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
+#include <vector>
+
 class Renderer;
 
 void createInstance(Renderer *renderer);
 void createSurface(Renderer *renderer);
 void selectGPU(Renderer *renderer);
 void createLogicalDevice(Renderer *renderer);
+void createSwapchain(Renderer *renderer);
+void createSwapchainImageViews(Renderer *renderer);
 
 class Renderer {
     public:
@@ -29,6 +33,13 @@ class Renderer {
         vk::raii::PhysicalDevice GPU = nullptr;
         vk::raii::Device device = nullptr;
         vk::raii::Queue graphicsQueue = nullptr;
+
+        vk::raii::SwapchainKHR swapchain = nullptr;
+        std::vector<vk::Image> swapchainImages;
+        vk::SurfaceFormatKHR swapchainSurfaceFormat;
+        vk::Extent2D swapchainExtent;
+
+        std::vector<vk::raii::ImageView> swapchainImageViews;
 
     public:
         void run(uint32_t windowWidth, uint32_t windowHeight) {
@@ -58,6 +69,8 @@ class Renderer {
             createSurface(this);
             selectGPU(this);
             createLogicalDevice(this);
+            createSwapchain(this);
+            createSwapchainImageViews(this);
         }
 
         void mainLoop() {

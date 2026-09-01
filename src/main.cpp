@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "headers/base.h"
 
 int main() {
