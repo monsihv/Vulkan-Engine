@@ -76,7 +76,7 @@ void createLogicalDevice(Renderer *renderer) {
                        vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain {
                            {},
                            {.shaderDrawParameters = true},
-                           {.dynamicRendering = true},
+                           {.synchronization2 = true, .dynamicRendering = true},
                            {.extendedDynamicState = true}
                        };
 
@@ -92,6 +92,7 @@ void createLogicalDevice(Renderer *renderer) {
 
     renderer->device = vk::raii::Device(renderer->GPU, deviceInfo);
     renderer->graphicsQueue = vk::raii::Queue(renderer->device, queueIndex, 0);
+    renderer->graphicsQueueIndex = queueIndex;
 }
 
 void createSwapchain(Renderer *renderer) {
@@ -113,6 +114,8 @@ void createSwapchain(Renderer *renderer) {
             [](const auto& presentMode) {
                 return presentMode == vk::PresentModeKHR::eMailbox;
             }) ? vk::PresentModeKHR::eMailbox : vk::PresentModeKHR::eFifo;
+
+    glfwGetFramebufferSize(renderer->window, (int*)&renderer->width, (int*)&renderer->height);
 
     auto minImageExtentWidth = surfaceCapabilities.minImageExtent.width;
     auto maxImageExtentWidth = surfaceCapabilities.maxImageExtent.width;
@@ -171,3 +174,30 @@ void createSwapchainImageViews(Renderer *renderer) {
         renderer->swapchainImageViews.emplace_back(renderer->device, imageViewInfo);
     }
 }
+
+void cleanupSwapchain(Renderer *renderer) {
+    renderer->swapchainImageViews.clear();
+    renderer->swapchain = nullptr;
+}
+
+void recreateSwapchain(Renderer *renderer) {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(renderer->window, &width, &height);
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(renderer->window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    renderer->device.waitIdle();
+
+    cleanupSwapchain(renderer);
+
+    createSwapchain(renderer);
+    createSwapchainImageViews(renderer);
+}
+
+
+
+
+
+
