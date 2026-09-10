@@ -74,7 +74,9 @@ void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex) {
     vk::Rect2D scissor {vk::Offset2D(0, 0), renderer->swapchainExtent};
     renderer->commandBuffers[frameIndex].setScissor(0, scissor);
 
-    renderer->commandBuffers[frameIndex].draw(3, 1, 0, 0);
+    renderer->commandBuffers[frameIndex].bindVertexBuffers(0,
+                                                          *renderer->triangleData.buffer, {0});
+    renderer->commandBuffers[frameIndex].draw(renderer->mesh.size(), 1, 0, 0);
 
     renderer->commandBuffers[frameIndex].endRendering();
 

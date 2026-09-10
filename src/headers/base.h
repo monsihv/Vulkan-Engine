@@ -10,6 +10,9 @@
 
 #include <vector>
 
+#include "vertex.h"
+#include "buffer.h"
+
 constexpr int MaxFramesInFlight = 3;
 
 class Renderer;
@@ -30,6 +33,9 @@ void createGraphicsPipeline(Renderer *renderer);
 //command.cpp
 void createCommandPool(Renderer *renderer);
 void allocateCommandBuffer(Renderer *renderer);
+
+//vertex.cpp
+void createVertexBuffer(Renderer *renderer);
 
 //draw.cpp
 void createSyncPrimitives(Renderer *renderer);
@@ -61,6 +67,9 @@ class Renderer {
 
         vk::raii::PipelineLayout graphicsPipelineLayout = nullptr;
         vk::raii::Pipeline graphicsPipeline = nullptr;
+
+        std::vector<Vertex> mesh;
+        Buffer triangleData;
 
         vk::raii::CommandPool commandPool = nullptr;
         std::vector<vk::raii::CommandBuffer> commandBuffers;
@@ -109,6 +118,7 @@ class Renderer {
             createSwapchain(this);
             createSwapchainImageViews(this);
             createGraphicsPipeline(this);
+            createVertexBuffer(this);
             createCommandPool(this);
             allocateCommandBuffer(this);
             createSyncPrimitives(this);

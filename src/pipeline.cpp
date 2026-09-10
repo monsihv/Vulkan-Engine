@@ -1,5 +1,6 @@
 #include "headers/base.h"
 #include "headers/pipeline.h"
+#include "headers/vertex.h"
 
 #include <stdio.h>
 #include <vector>
@@ -7,7 +8,7 @@
 vk::raii::ShaderModule readSpv(Renderer *renderer, const char *fileName) {
     FILE *f = fopen(fileName, "rb");
     if (!f) printf("shader file not opened properly");
-    
+
     fseek(f, 0, SEEK_END);
     uint32_t size = ftell(f);
     rewind(f);
@@ -58,7 +59,15 @@ void createGraphicsPipeline(Renderer *renderer) {
     };
 
     //Vertex Input
-    vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
+    auto bindingDescription {Vertex::getBindingDescription()};
+    auto attributeDescription {Vertex::getAttributeDescription()};
+
+    vk::PipelineVertexInputStateCreateInfo vertexInputInfo {
+        .vertexBindingDescriptionCount = 1,
+        .pVertexBindingDescriptions = &bindingDescription,
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescription.size()),
+        .pVertexAttributeDescriptions = attributeDescription.data()
+    };
 
     //Input Assembler
     vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo {
@@ -77,7 +86,7 @@ void createGraphicsPipeline(Renderer *renderer) {
         .rasterizerDiscardEnable = vk::False,
         .polygonMode = vk::PolygonMode::eFill,
         .cullMode = vk::CullModeFlagBits::eBack,
-        .frontFace = vk::FrontFace::eCounterClockwise,
+        .frontFace = vk::FrontFace::eClockwise,
         .depthBiasEnable = vk::False,
         .lineWidth = 1.0f
     };
