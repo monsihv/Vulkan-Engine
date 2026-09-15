@@ -36,6 +36,7 @@ void allocateCommandBuffer(Renderer *renderer);
 
 //vertex.cpp
 void createVertexBuffer(Renderer *renderer);
+void createIndexBuffer(Renderer *renderer);
 
 //draw.cpp
 void createSyncPrimitives(Renderer *renderer);
@@ -69,7 +70,9 @@ class Renderer {
         vk::raii::Pipeline graphicsPipeline = nullptr;
 
         std::vector<Vertex> mesh;
-        Buffer triangleData;
+        std::vector<uint16_t> indices;
+        Buffer meshVertices;
+        Buffer meshIndices;
 
         vk::raii::CommandPool commandPool = nullptr;
         std::vector<vk::raii::CommandBuffer> commandBuffers;
@@ -118,8 +121,9 @@ class Renderer {
             createSwapchain(this);
             createSwapchainImageViews(this);
             createGraphicsPipeline(this);
-            createVertexBuffer(this);
             createCommandPool(this);
+            createVertexBuffer(this);
+            createIndexBuffer(this);
             allocateCommandBuffer(this);
             createSyncPrimitives(this);
         }

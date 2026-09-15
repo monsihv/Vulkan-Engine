@@ -3,33 +3,48 @@
 #include "headers/base.h"
 
 void createVertexBuffer(Renderer *renderer) {
-    vk::BufferCreateInfo bufferInfo {
-        .size = sizeof(renderer->mesh[0]) * renderer->mesh.size(),
-        .usage = vk::BufferUsageFlagBits::eVertexBuffer,
-        .sharingMode = vk::SharingMode::eExclusive
+    vk::CommandBufferAllocateInfo commandBufferInfo {
+        .commandPool = renderer->commandPool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1
     };
+    auto commandBuffer = std::move(vk::raii::CommandBuffers(renderer->device, commandBufferInfo).front());
 
-    renderer->triangleData.buffer = vk::raii::Buffer(renderer->device, bufferInfo);
+    auto data = renderer->mesh.data();
+    auto size = sizeof(renderer->mesh[0]) * renderer->mesh.size();
 
-    auto memoryRequirements = renderer->triangleData.buffer.getMemoryRequirements();
+    auto stageUsageFlags = vk::BufferUsageFlagBits::eTransferSrc;
+    auto stageMemoryFlags = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+    auto stageBuffer = createBuffer(renderer, data, size, stageUsageFlags, stageMemoryFlags);
 
-    vk::MemoryAllocateInfo memoryInfo {
-        .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = findMemoryType(*renderer->GPU, memoryRequirements.memoryTypeBits,
-                                          vk::MemoryPropertyFlagBits::eHostVisible |
-                                          vk::MemoryPropertyFlagBits::eHostCoherent)
-    };
+    auto vertexUsageFlags = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+    auto vertexMemoryFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
+    renderer->meshVertices = createBuffer(renderer, NULL, size, vertexUsageFlags, vertexMemoryFlags);
 
-    renderer->triangleData.memory = vk::raii::DeviceMemory(renderer->device, memoryInfo);
-
-    renderer->triangleData.buffer.bindMemory(*renderer->triangleData.memory, 0);
-
-    renderer->triangleData.map = renderer->triangleData.memory.mapMemory(0, bufferInfo.size);
-
-    memcpy(renderer->triangleData.map, renderer->mesh.data(), bufferInfo.size);
+    copyBuffer(renderer, stageBuffer.buffer, renderer->meshVertices.buffer, size, commandBuffer);
 }
 
+void createIndexBuffer(Renderer *renderer) {
+    vk::CommandBufferAllocateInfo commandBufferInfo {
+        .commandPool = renderer->commandPool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1
+    };
+    auto commandBuffer = std::move(vk::raii::CommandBuffers(renderer->device, commandBufferInfo).front());
 
+    auto data = renderer->indices.data();
+    auto size = sizeof(renderer->indices[0]) * renderer->indices.size();
+
+    auto stageUsageFlags = vk::BufferUsageFlagBits::eTransferSrc;
+    auto stageMemoryFlags = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+    auto stageBuffer = createBuffer(renderer, data, size, stageUsageFlags, stageMemoryFlags);
+
+    auto indexUsageFlags = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+    auto indexMemoryFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
+    renderer->meshIndices = createBuffer(renderer, NULL, size, indexUsageFlags, indexMemoryFlags);
+
+    copyBuffer(renderer, stageBuffer.buffer, renderer->meshIndices.buffer, size, commandBuffer);
+}
 
 
 

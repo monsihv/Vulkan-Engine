@@ -75,8 +75,9 @@ void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex) {
     renderer->commandBuffers[frameIndex].setScissor(0, scissor);
 
     renderer->commandBuffers[frameIndex].bindVertexBuffers(0,
-                                                          *renderer->triangleData.buffer, {0});
-    renderer->commandBuffers[frameIndex].draw(renderer->mesh.size(), 1, 0, 0);
+                                                          *renderer->meshVertices.buffer, {0});
+    renderer->commandBuffers[frameIndex].bindIndexBuffer(*renderer->meshIndices.buffer, 0, vk::IndexType::eUint16);
+    renderer->commandBuffers[frameIndex].drawIndexed(renderer->indices.size(), 1, 0, 0, 0);
 
     renderer->commandBuffers[frameIndex].endRendering();
 
