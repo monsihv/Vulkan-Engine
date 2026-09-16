@@ -1,6 +1,7 @@
 #include "headers/base.h"
 #include "headers/pipeline.h"
 #include "headers/vertex.h"
+#include "headers/buffer.h"
 
 #include <stdio.h>
 #include <vector>
@@ -118,7 +119,7 @@ void createGraphicsPipeline(Renderer *renderer) {
 
     //Pipeline Layout
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo {
-        .setLayoutCount = 0, 
+        .setLayoutCount = 0,
         .pushConstantRangeCount = 0
     };
 

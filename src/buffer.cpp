@@ -37,7 +37,7 @@ Buffer createBuffer(Renderer *renderer, const void *data, vk::DeviceSize size,
     output.memory = vk::raii::DeviceMemory(renderer->device, memoryInfo);
     output.buffer.bindMemory(output.memory, 0);
     output.map = output.memory.mapMemory(0, bufferInfo.size);
-    if (data) memcpy(output.map, data, bufferInfo.size);
+    if (data && (memoryFlags & vk::MemoryPropertyFlagBits::eHostCoherent)) memcpy(output.map, data, bufferInfo.size);
 
     return output;
 }
@@ -62,4 +62,51 @@ void copyBuffer(Renderer *renderer, vk::raii::Buffer& src, vk::raii::Buffer& dst
     };
     renderer->graphicsQueue.submit(submitInfo, nullptr);
     renderer->device.waitIdle();
+}
+
+void createDescriptorPools(Renderer *renderer) {
+    vk::DescriptorPoolSize descriptorPoolSize {
+        .type = vk::DescriptorType::eUniformBuffer,
+        .descriptorCount = MaxFramesInFlight
+    };
+
+    auto deviceProperties = renderer->GPU.getProperties();
+    vk::DescriptorPoolCreateInfo descriptorPoolInfo {
+        .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+        .maxSets = deviceProperties.limits.maxDescriptorSetUniformBuffers,
+        .poolSizeCount = 1,
+        .pPoolSizes = &descriptorPoolSize
+    };
+
+    renderer->uniformBufferDescriptorPool = vk::raii::DescriptorPool(renderer->device, descriptorPoolInfo);
+}
+
+void createUniformBufferDescriptorSets(Renderer *renderer) {
+    vk::DescriptorSetLayoutBinding descriptorSetLayoutBinding {
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eUniformBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+    };
+
+    vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutInfo {
+        .bindingCount = 1,
+        .pBindings = &descriptorSetLayoutBinding
+    };
+
+    std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
+    descriptorSetLayouts.reserve(MaxFramesInFlight);
+    renderer->cameraBufferDescriptorSetLayouts.reserve(MaxFramesInFlight);
+    for (uint32_t i{}; i < MaxFramesInFlight; ++i) {
+        renderer->cameraBufferDescriptorSetLayouts.emplace_back(renderer->device, descriptorSetLayoutInfo, nullptr);
+        descriptorSetLayouts.push_back(*renderer->cameraBufferDescriptorSetLayouts[i]);
+    }
+
+    vk::DescriptorSetAllocateInfo descriptorSetInfo {
+        .descriptorPool = renderer->uniformBufferDescriptorPool,
+        .descriptorSetCount = static_cast<uint32_t>(descriptorSetLayouts.size()),
+        .pSetLayouts = descriptorSetLayouts.data()
+    };
+
+    renderer->cameraBufferDescriptorSets = std::move(vk::raii::DescriptorSets(renderer->device, descriptorSetInfo));
 }

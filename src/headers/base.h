@@ -34,6 +34,13 @@ void createGraphicsPipeline(Renderer *renderer);
 void createCommandPool(Renderer *renderer);
 void allocateCommandBuffer(Renderer *renderer);
 
+//buffer.cpp
+void createDescriptorPools(Renderer *renderer);
+void createUniformBufferDescriptorSets(Renderer *renderer);
+
+//camera.cpp
+void createCameraBuffers(Renderer *renderer);
+
 //vertex.cpp
 void createVertexBuffer(Renderer *renderer);
 void createIndexBuffer(Renderer *renderer);
@@ -66,8 +73,14 @@ class Renderer {
 
         std::vector<vk::raii::ImageView> swapchainImageViews;
 
+        vk::raii::DescriptorPool uniformBufferDescriptorPool = nullptr;
+        std::vector<vk::raii::DescriptorSetLayout> cameraBufferDescriptorSetLayouts;
+        std::vector<vk::raii::DescriptorSet> cameraBufferDescriptorSets;
+
         vk::raii::PipelineLayout graphicsPipelineLayout = nullptr;
         vk::raii::Pipeline graphicsPipeline = nullptr;
+
+        std::vector<Buffer> cameraBuffers;
 
         std::vector<Vertex> mesh;
         std::vector<uint16_t> indices;
@@ -122,6 +135,9 @@ class Renderer {
             createSwapchainImageViews(this);
             createGraphicsPipeline(this);
             createCommandPool(this);
+            createDescriptorPools(this);
+            createUniformBufferDescriptorSets(this);
+            createCameraBuffers(this);
             createVertexBuffer(this);
             createIndexBuffer(this);
             allocateCommandBuffer(this);
