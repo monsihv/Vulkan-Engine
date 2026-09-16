@@ -25,25 +25,31 @@ Buffer createBuffer(Renderer *renderer, const void *data, vk::DeviceSize size,
         .sharingMode = vk::SharingMode::eExclusive
     };
 
-    output.buffer = vk::raii::Buffer(renderer->device, bufferInfo);
+    output.buffer = renderer->device.createBuffer(bufferInfo);
 
-    auto memoryRequirements = output.buffer.getMemoryRequirements();
+    auto memoryRequirements = renderer->device.getBufferMemoryRequirements(output.buffer);
 
     vk::MemoryAllocateInfo memoryInfo {
         .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = findMemoryType(*renderer->GPU, memoryRequirements.memoryTypeBits, memoryFlags)
+        .memoryTypeIndex = findMemoryType(renderer->GPU, memoryRequirements.memoryTypeBits, memoryFlags)
     };
 
-    output.memory = vk::raii::DeviceMemory(renderer->device, memoryInfo);
-    output.buffer.bindMemory(output.memory, 0);
-    output.map = output.memory.mapMemory(0, bufferInfo.size);
+    output.memory = renderer->device.allocateMemory(memoryInfo);
+    renderer->device.bindBufferMemory(output.buffer, output.memory, 0);
+    output.map = renderer->device.mapMemory(output.memory, 0, bufferInfo.size);
     if (data && (memoryFlags & vk::MemoryPropertyFlagBits::eHostCoherent)) memcpy(output.map, data, bufferInfo.size);
 
     return output;
 }
 
-void copyBuffer(Renderer *renderer, vk::raii::Buffer& src, vk::raii::Buffer& dst,
-                vk::DeviceSize size, vk::raii::CommandBuffer& commandBuffer) {
+void destroyBuffer(Renderer *renderer, Buffer& buffer) {
+    renderer->device.free(buffer.memory);
+    renderer->device.destroy(buffer.buffer);
+    buffer.map = nullptr;
+}
+
+void copyBuffer(Renderer *renderer, vk::Buffer& src, vk::Buffer& dst,
+                vk::DeviceSize size, vk::CommandBuffer& commandBuffer) {
     commandBuffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
     vk::BufferCopy bufferCopy {
@@ -58,7 +64,7 @@ void copyBuffer(Renderer *renderer, vk::raii::Buffer& src, vk::raii::Buffer& dst
 
     vk::SubmitInfo submitInfo {
         .commandBufferCount = 1,
-        .pCommandBuffers = &*commandBuffer
+        .pCommandBuffers = &commandBuffer
     };
     renderer->graphicsQueue.submit(submitInfo, nullptr);
     renderer->device.waitIdle();
@@ -78,7 +84,7 @@ void createDescriptorPools(Renderer *renderer) {
         .pPoolSizes = &descriptorPoolSize
     };
 
-    renderer->uniformBufferDescriptorPool = vk::raii::DescriptorPool(renderer->device, descriptorPoolInfo);
+    renderer->uniformBufferDescriptorPool = renderer->device.createDescriptorPool(descriptorPoolInfo);
 }
 
 void createUniformBufferDescriptorSets(Renderer *renderer) {
@@ -94,12 +100,11 @@ void createUniformBufferDescriptorSets(Renderer *renderer) {
         .pBindings = &descriptorSetLayoutBinding
     };
 
-    std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
+    auto& descriptorSetLayouts = renderer->cameraBufferDescriptorSetLayouts;
     descriptorSetLayouts.reserve(MaxFramesInFlight);
-    renderer->cameraBufferDescriptorSetLayouts.reserve(MaxFramesInFlight);
     for (uint32_t i{}; i < MaxFramesInFlight; ++i) {
-        renderer->cameraBufferDescriptorSetLayouts.emplace_back(renderer->device, descriptorSetLayoutInfo, nullptr);
-        descriptorSetLayouts.push_back(*renderer->cameraBufferDescriptorSetLayouts[i]);
+        auto descriptorLayout = renderer->device.createDescriptorSetLayout(descriptorSetLayoutInfo, nullptr);
+        descriptorSetLayouts.push_back(descriptorLayout);
     }
 
     vk::DescriptorSetAllocateInfo descriptorSetInfo {
@@ -108,5 +113,5 @@ void createUniformBufferDescriptorSets(Renderer *renderer) {
         .pSetLayouts = descriptorSetLayouts.data()
     };
 
-    renderer->cameraBufferDescriptorSets = std::move(vk::raii::DescriptorSets(renderer->device, descriptorSetInfo));
+    renderer->cameraBufferDescriptorSets = renderer->device.allocateDescriptorSets(descriptorSetInfo);
 }

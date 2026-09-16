@@ -6,7 +6,7 @@ void createCommandPool(Renderer *renderer) {
         .queueFamilyIndex = renderer->graphicsQueueIndex
     };
 
-    renderer->commandPool = vk::raii::CommandPool(renderer->device, commandPoolInfo);
+    renderer->commandPool = renderer->device.createCommandPool(commandPoolInfo);
 }
 
 void allocateCommandBuffer(Renderer *renderer) {
@@ -16,5 +16,11 @@ void allocateCommandBuffer(Renderer *renderer) {
         .commandBufferCount = MaxFramesInFlight
     };
 
-    renderer->commandBuffers = std::move(vk::raii::CommandBuffers(renderer->device, commandBufferInfo));
+    renderer->commandBuffers = renderer->device.allocateCommandBuffers(commandBufferInfo);
+}
+
+void freeCommandBuffers(Renderer *renderer) {
+    for (auto& commandBuffer : renderer->commandBuffers) {
+        renderer->device.free(renderer->commandPool, commandBuffer);
+    }
 }

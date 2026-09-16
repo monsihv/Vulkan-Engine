@@ -6,7 +6,6 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_raii.hpp>
 
 #include <vector>
 
@@ -33,6 +32,7 @@ void createGraphicsPipeline(Renderer *renderer);
 //command.cpp
 void createCommandPool(Renderer *renderer);
 void allocateCommandBuffer(Renderer *renderer);
+void freeCommandBuffers(Renderer *renderer);
 
 //buffer.cpp
 void createDescriptorPools(Renderer *renderer);
@@ -40,14 +40,17 @@ void createUniformBufferDescriptorSets(Renderer *renderer);
 
 //camera.cpp
 void createCameraBuffers(Renderer *renderer);
+void freeCameraBuffers(Renderer *renderer);
 
 //vertex.cpp
 void createVertexBuffer(Renderer *renderer);
 void createIndexBuffer(Renderer *renderer);
+void freeMeshBuffers(Renderer *renderer);
 
 //draw.cpp
-void createSyncPrimitives(Renderer *renderer);
+void createDrawSyncPrimitives(Renderer *renderer);
 void drawFrame(Renderer *renderer);
+void destroyDrawSyncPrimitives(Renderer *renderer);
 
 class Renderer {
     public:
@@ -56,29 +59,28 @@ class Renderer {
         uint32_t height;
         bool framebufferResized = false;
 
-        vk::raii::Context context;
-        vk::raii::Instance instance = nullptr;
+        vk::Instance instance;
 
-        vk::raii::SurfaceKHR surface = nullptr;
+        vk::SurfaceKHR surface;
 
-        vk::raii::PhysicalDevice GPU = nullptr;
-        vk::raii::Device device = nullptr;
-        vk::raii::Queue graphicsQueue = nullptr;
+        vk::PhysicalDevice GPU;
+        vk::Device device;
+        vk::Queue graphicsQueue;
         uint32_t graphicsQueueIndex;
 
-        vk::raii::SwapchainKHR swapchain = nullptr;
+        vk::SwapchainKHR swapchain;
         std::vector<vk::Image> swapchainImages;
         vk::SurfaceFormatKHR swapchainSurfaceFormat;
         vk::Extent2D swapchainExtent;
 
-        std::vector<vk::raii::ImageView> swapchainImageViews;
+        std::vector<vk::ImageView> swapchainImageViews;
 
-        vk::raii::DescriptorPool uniformBufferDescriptorPool = nullptr;
-        std::vector<vk::raii::DescriptorSetLayout> cameraBufferDescriptorSetLayouts;
-        std::vector<vk::raii::DescriptorSet> cameraBufferDescriptorSets;
+        vk::DescriptorPool uniformBufferDescriptorPool = nullptr;
+        std::vector<vk::DescriptorSetLayout> cameraBufferDescriptorSetLayouts;
+        std::vector<vk::DescriptorSet> cameraBufferDescriptorSets;
 
-        vk::raii::PipelineLayout graphicsPipelineLayout = nullptr;
-        vk::raii::Pipeline graphicsPipeline = nullptr;
+        vk::PipelineLayout graphicsPipelineLayout;
+        vk::Pipeline graphicsPipeline;
 
         std::vector<Buffer> cameraBuffers;
 
@@ -87,12 +89,12 @@ class Renderer {
         Buffer meshVertices;
         Buffer meshIndices;
 
-        vk::raii::CommandPool commandPool = nullptr;
-        std::vector<vk::raii::CommandBuffer> commandBuffers;
+        vk::CommandPool commandPool;
+        std::vector<vk::CommandBuffer> commandBuffers;
 
-        std::vector<vk::raii::Semaphore> renderReadySemaphores;
-        std::vector<vk::raii::Semaphore> renderCompleteSemaphores;
-        std::vector<vk::raii::Fence> drawFences;
+        std::vector<vk::Semaphore> renderReadySemaphores;
+        std::vector<vk::Semaphore> renderCompleteSemaphores;
+        std::vector<vk::Fence> drawFences;
         uint32_t frameIndex {};
 
     public:
@@ -141,7 +143,7 @@ class Renderer {
             createVertexBuffer(this);
             createIndexBuffer(this);
             allocateCommandBuffer(this);
-            createSyncPrimitives(this);
+            createDrawSyncPrimitives(this);
         }
 
         void mainLoop() {
@@ -154,10 +156,19 @@ class Renderer {
         }
 
         void cleanup() {
+            destroyDrawSyncPrimitives(this);
+            freeCommandBuffers(this);
+            device.destroy(commandPool);
+            freeMeshBuffers(this);
+            device.destroy(graphicsPipeline);
+            device.destroy(graphicsPipelineLayout);
+            freeCameraBuffers(this);
+            device.destroy(uniformBufferDescriptorPool);
             cleanupSwapchain(this);
-
+            device.destroy();
+            instance.destroy(surface);
+            instance.destroy();
             glfwDestroyWindow(window);
-
             glfwTerminate();
         }
 };

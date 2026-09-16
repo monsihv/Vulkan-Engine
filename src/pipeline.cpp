@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <vector>
 
-vk::raii::ShaderModule readSpv(Renderer *renderer, const char *fileName) {
+vk::ShaderModule readSpv(Renderer *renderer, const char *fileName) {
     FILE *f = fopen(fileName, "rb");
     if (!f) printf("shader file not opened properly");
 
@@ -24,7 +24,7 @@ vk::raii::ShaderModule readSpv(Renderer *renderer, const char *fileName) {
         .pCode = buffer
     };
 
-    auto output = vk::raii::ShaderModule(renderer->device, shaderModuleInfo);
+    auto output = renderer->device.createShaderModule(shaderModuleInfo);
 
     ::operator delete(buffer);
 
@@ -123,7 +123,7 @@ void createGraphicsPipeline(Renderer *renderer) {
         .pushConstantRangeCount = 0
     };
 
-    renderer->graphicsPipelineLayout = vk::raii::PipelineLayout(renderer->device, pipelineLayoutInfo);
+    renderer->graphicsPipelineLayout = renderer->device.createPipelineLayout(pipelineLayoutInfo);
 
     //Pipeline Creation & Dynamic Rendering
     vk::StructureChain<vk::GraphicsPipelineCreateInfo, 
@@ -146,8 +146,11 @@ void createGraphicsPipeline(Renderer *renderer) {
                                .pColorAttachmentFormats = &renderer->swapchainSurfaceFormat.format}
                            };
 
-    renderer->graphicsPipeline = vk::raii::Pipeline(renderer->device, nullptr,
-                                                    pipelineCreateInfo.get<vk::GraphicsPipelineCreateInfo>());
+    renderer->graphicsPipeline = renderer->device.createGraphicsPipeline(nullptr,
+                                                  pipelineCreateInfo.get<vk::GraphicsPipelineCreateInfo>()).value;
+
+    //cleanup
+    renderer->device.destroy(shaderModule);
 }
 
 

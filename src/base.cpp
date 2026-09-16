@@ -32,19 +32,19 @@ void createInstance(Renderer *renderer) {
         .ppEnabledExtensionNames = enabledExtensions.data()
     };
 
-    renderer->instance = vk::raii::Instance(renderer->context, instanceInfo);
+    renderer->instance = vk::createInstance(instanceInfo);
 }
 
 void createSurface(Renderer *renderer) {
     VkSurfaceKHR surface;
-    glfwCreateWindowSurface(*renderer->instance, renderer->window, nullptr, &surface);
+    glfwCreateWindowSurface(renderer->instance, renderer->window, nullptr, &surface);
 
-    renderer->surface = vk::raii::SurfaceKHR(renderer->instance, surface);
+    renderer->surface = vk::SurfaceKHR(surface);
 }
 
 void selectGPU(Renderer *renderer) {
     auto physicalDevices = renderer->instance.enumeratePhysicalDevices();
-    renderer->GPU = std::move(physicalDevices[1]);
+    renderer->GPU = physicalDevices[1];
 }
 
 void createLogicalDevice(Renderer *renderer) {
@@ -54,7 +54,7 @@ void createLogicalDevice(Renderer *renderer) {
     uint32_t queueIndex {};
     for (uint32_t i {}; i < qfpLength; ++i) {
         if ((queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) && 
-                renderer->GPU.getSurfaceSupportKHR(i, *renderer->surface)) {
+                renderer->GPU.getSurfaceSupportKHR(i, renderer->surface)) {
             queueIndex = i;
             break;
         }
@@ -90,15 +90,15 @@ void createLogicalDevice(Renderer *renderer) {
         .ppEnabledExtensionNames = requiredDeviceExtensions.data()
     };
 
-    renderer->device = vk::raii::Device(renderer->GPU, deviceInfo);
-    renderer->graphicsQueue = vk::raii::Queue(renderer->device, queueIndex, 0);
+    renderer->device = renderer->GPU.createDevice(deviceInfo);
+    renderer->graphicsQueue = renderer->device.getQueue(queueIndex, 0);
     renderer->graphicsQueueIndex = queueIndex;
 }
 
 void createSwapchain(Renderer *renderer) {
-    auto surfaceCapabilities = renderer->GPU.getSurfaceCapabilitiesKHR(*renderer->surface);
-    auto availableFormats = renderer->GPU.getSurfaceFormatsKHR(*renderer->surface);
-    auto availablePresentModes = renderer->GPU.getSurfacePresentModesKHR(*renderer->surface);
+    auto surfaceCapabilities = renderer->GPU.getSurfaceCapabilitiesKHR(renderer->surface);
+    auto availableFormats = renderer->GPU.getSurfaceFormatsKHR(renderer->surface);
+    auto availablePresentModes = renderer->GPU.getSurfacePresentModesKHR(renderer->surface);
 
     const auto format = std::ranges::find_if(availableFormats,
             [](const auto& format) {
@@ -136,7 +136,7 @@ void createSwapchain(Renderer *renderer) {
     }
 
     vk::SwapchainCreateInfoKHR swapchainInfo {
-        .surface = *renderer->surface,
+        .surface = renderer->surface,
         .minImageCount = minImageCount,
         .imageFormat = format->format,
         .imageColorSpace = format->colorSpace,
@@ -152,8 +152,8 @@ void createSwapchain(Renderer *renderer) {
 
     swapchainInfo.oldSwapchain = nullptr;
 
-    renderer->swapchain = vk::raii::SwapchainKHR(renderer->device, swapchainInfo);
-    renderer->swapchainImages = renderer->swapchain.getImages();
+    renderer->swapchain = renderer->device.createSwapchainKHR(swapchainInfo);
+    renderer->swapchainImages = renderer->device.getSwapchainImagesKHR(renderer->swapchain);
     renderer->swapchainSurfaceFormat = {vk::Format::eB8G8R8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear};
 }
 
@@ -169,15 +169,19 @@ void createSwapchainImageViews(Renderer *renderer) {
                                 vk::ComponentSwizzle::eIdentity,
                                 vk::ComponentSwizzle::eIdentity};
 
+    vk::ImageView imageView;
     for (auto& image : renderer->swapchainImages) {
         imageViewInfo.image = image;
-        renderer->swapchainImageViews.emplace_back(renderer->device, imageViewInfo);
+        imageView = renderer->device.createImageView(imageViewInfo);
+        renderer->swapchainImageViews.push_back(imageView);
     }
 }
 
 void cleanupSwapchain(Renderer *renderer) {
-    renderer->swapchainImageViews.clear();
-    renderer->swapchain = nullptr;
+    for (auto& imageView : renderer->swapchainImageViews) {
+        renderer->device.destroy(imageView);
+    }
+    renderer->device.destroy(renderer->swapchain);
 }
 
 void recreateSwapchain(Renderer *renderer) {

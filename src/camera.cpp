@@ -6,7 +6,7 @@ void createCameraBuffers(Renderer *renderer) {
     auto memoryFlags = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
     for (uint32_t i {}; i < MaxFramesInFlight; ++i) {
         Buffer buffer = createBuffer(renderer, NULL, sizeof(Camera), usageFlags, memoryFlags);
-        renderer->cameraBuffers.push_back(std::move(buffer));
+        renderer->cameraBuffers.push_back(buffer);
     }
 
     vk::DescriptorBufferInfo descriptorBufferInfo {
@@ -26,8 +26,8 @@ void createCameraBuffers(Renderer *renderer) {
     std::vector<vk::WriteDescriptorSet> descriptorWrites;
     descriptorWrites.reserve(size);
     for (uint32_t i{}; i < size; ++i) {
-        writeDescriptorSet.dstSet = *renderer->cameraBufferDescriptorSets[i];
-        descriptorBufferInfo.buffer = *renderer->cameraBuffers[i].buffer;
+        writeDescriptorSet.dstSet = renderer->cameraBufferDescriptorSets[i];
+        descriptorBufferInfo.buffer = renderer->cameraBuffers[i].buffer;
 
         descriptorBufferInfos.push_back(descriptorBufferInfo);
         writeDescriptorSet.pBufferInfo = &descriptorBufferInfos[i];
@@ -36,4 +36,18 @@ void createCameraBuffers(Renderer *renderer) {
     }
 
     renderer->device.updateDescriptorSets(descriptorWrites, NULL);
+}
+
+void freeCameraBuffers(Renderer *renderer) {
+    for (auto& buffer : renderer->cameraBuffers) {
+        destroyBuffer(renderer, buffer);
+    }
+
+    for (auto& descriptorSetLayout : renderer->cameraBufferDescriptorSetLayouts) {
+        renderer->device.destroy(descriptorSetLayout);
+    }
+
+    for (auto& descriptorSet : renderer->cameraBufferDescriptorSets) {
+        renderer->device.free(renderer->uniformBufferDescriptorPool, descriptorSet);
+    }
 }

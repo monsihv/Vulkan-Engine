@@ -41,7 +41,7 @@ void transitionImageLayout(Renderer *renderer, uint32_t imageIndex,
 void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex) {
     auto frameIndex = renderer->frameIndex;
 
-    renderer->commandBuffers[frameIndex].begin({});
+    renderer->commandBuffers[frameIndex].begin(vk::CommandBufferBeginInfo{});
 
     transitionImageLayout(renderer, imageIndex,
                           vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, 
@@ -75,8 +75,8 @@ void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex) {
     renderer->commandBuffers[frameIndex].setScissor(0, scissor);
 
     renderer->commandBuffers[frameIndex].bindVertexBuffers(0,
-                                                          *renderer->meshVertices.buffer, {0});
-    renderer->commandBuffers[frameIndex].bindIndexBuffer(*renderer->meshIndices.buffer, 0, vk::IndexType::eUint16);
+                                                          renderer->meshVertices.buffer, {0});
+    renderer->commandBuffers[frameIndex].bindIndexBuffer(renderer->meshIndices.buffer, 0, vk::IndexType::eUint16);
     renderer->commandBuffers[frameIndex].drawIndexed(renderer->indices.size(), 1, 0, 0, 0);
 
     renderer->commandBuffers[frameIndex].endRendering();
@@ -91,34 +91,41 @@ void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex) {
     renderer->commandBuffers[frameIndex].end();
 }
 
-void createSyncPrimitives(Renderer *renderer) {
+void createDrawSyncPrimitives(Renderer *renderer) {
     vk::SemaphoreCreateInfo readySemaphoreInfo {};
     vk::SemaphoreCreateInfo completeSemaphoreInfo {};
     vk::FenceCreateInfo drawFenceInfo {
         .flags = vk::FenceCreateFlagBits::eSignaled
     };
 
-    for (size_t i {}; i < renderer->swapchainImages.size(); ++i) {
+    vk::Semaphore semaphore;
+    vk::Fence fence;
+    auto size = renderer->swapchainImages.size();
+    for (size_t i {}; i < size; ++i) {
         if (i < MaxFramesInFlight) {
-            renderer->renderReadySemaphores.emplace_back(renderer->device, readySemaphoreInfo);
-            renderer->drawFences.emplace_back(renderer->device, drawFenceInfo);
+            semaphore = renderer->device.createSemaphore(readySemaphoreInfo);
+            fence = renderer->device.createFence(drawFenceInfo);
+            renderer->renderReadySemaphores.push_back(semaphore);
+            renderer->drawFences.push_back(fence);
         }
 
-        renderer->renderCompleteSemaphores.emplace_back(renderer->device, completeSemaphoreInfo);
+        semaphore = renderer->device.createSemaphore(completeSemaphoreInfo);
+        renderer->renderCompleteSemaphores.emplace_back(semaphore);
     }
 }
 
 void drawFrame(Renderer *renderer) {
     auto& frameIndex = renderer->frameIndex;
 
-    auto fenceResult = renderer->device.waitForFences(*renderer->drawFences[frameIndex], vk::True, UINT64_MAX);
+    auto fenceResult = renderer->device.waitForFences(renderer->drawFences[frameIndex], vk::True, UINT64_MAX);
     if (fenceResult != vk::Result::eSuccess) {
         fprintf(stderr, "failed to wait for fence\n");
         exit(1);
     }
 
-    auto [result, imageIndex] = renderer->swapchain.acquireNextImage(UINT64_MAX, 
-                                                                     renderer->renderReadySemaphores[frameIndex], nullptr);
+    auto [result, imageIndex] = renderer->device.acquireNextImageKHR(renderer->swapchain, UINT64_MAX, 
+                                                                     renderer->renderReadySemaphores[frameIndex],
+                                                                     nullptr);
 
     if (result == vk::Result::eErrorOutOfDateKHR || 
         result == vk::Result::eSuboptimalKHR) {
@@ -131,7 +138,7 @@ void drawFrame(Renderer *renderer) {
         exit(1);
     }
 
-    renderer->device.resetFences(*renderer->drawFences[frameIndex]);
+    renderer->device.resetFences(renderer->drawFences[frameIndex]);
 
     renderer->commandBuffers[frameIndex].reset();
     recordCommandBuffer(renderer, imageIndex);
@@ -140,21 +147,21 @@ void drawFrame(Renderer *renderer) {
 
     const vk::SubmitInfo submitInfo {
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &*renderer->renderReadySemaphores[frameIndex],
+        .pWaitSemaphores = &renderer->renderReadySemaphores[frameIndex],
         .pWaitDstStageMask = &waitDestinationStageMask,
         .commandBufferCount = 1,
-        .pCommandBuffers = &*renderer->commandBuffers[frameIndex],
+        .pCommandBuffers = &renderer->commandBuffers[frameIndex],
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &*renderer->renderCompleteSemaphores[imageIndex]
+        .pSignalSemaphores = &renderer->renderCompleteSemaphores[imageIndex]
     };
 
     renderer->graphicsQueue.submit(submitInfo, renderer->drawFences[frameIndex]);
 
     const vk::PresentInfoKHR presentInfo {
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &*renderer->renderCompleteSemaphores[imageIndex],
+        .pWaitSemaphores = &renderer->renderCompleteSemaphores[imageIndex],
         .swapchainCount = 1,
-        .pSwapchains = &*renderer->swapchain,
+        .pSwapchains = &renderer->swapchain,
         .pImageIndices = &imageIndex
     };
 
@@ -174,7 +181,17 @@ void drawFrame(Renderer *renderer) {
     frameIndex = (frameIndex + 1) % MaxFramesInFlight;
 }
 
+void destroyDrawSyncPrimitives(Renderer *renderer) {
+    auto size = renderer->swapchainImages.size();
+    for (size_t i {}; i < size; ++i) {
+        if (i < MaxFramesInFlight) {
+            renderer->device.destroy(renderer->renderReadySemaphores[i]);
+            renderer->device.destroy(renderer->drawFences[i]);
+        }
 
+        renderer->device.destroy(renderer->renderCompleteSemaphores[i]);
+    }
+}
 
 
 

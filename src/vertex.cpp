@@ -8,7 +8,7 @@ void createVertexBuffer(Renderer *renderer) {
         .level = vk::CommandBufferLevel::ePrimary,
         .commandBufferCount = 1
     };
-    auto commandBuffer = std::move(vk::raii::CommandBuffers(renderer->device, commandBufferInfo).front());
+    auto commandBuffer = renderer->device.allocateCommandBuffers(commandBufferInfo).front();
 
     auto data = renderer->mesh.data();
     auto size = sizeof(renderer->mesh[0]) * renderer->mesh.size();
@@ -22,6 +22,10 @@ void createVertexBuffer(Renderer *renderer) {
     renderer->meshVertices = createBuffer(renderer, NULL, size, vertexUsageFlags, vertexMemoryFlags);
 
     copyBuffer(renderer, stageBuffer.buffer, renderer->meshVertices.buffer, size, commandBuffer);
+    destroyBuffer(renderer, stageBuffer);
+
+    renderer->device.free(renderer->commandPool, commandBuffer);
+
 }
 
 void createIndexBuffer(Renderer *renderer) {
@@ -30,7 +34,7 @@ void createIndexBuffer(Renderer *renderer) {
         .level = vk::CommandBufferLevel::ePrimary,
         .commandBufferCount = 1
     };
-    auto commandBuffer = std::move(vk::raii::CommandBuffers(renderer->device, commandBufferInfo).front());
+    auto commandBuffer = renderer->device.allocateCommandBuffers(commandBufferInfo).front();
 
     auto data = renderer->indices.data();
     auto size = sizeof(renderer->indices[0]) * renderer->indices.size();
@@ -44,9 +48,15 @@ void createIndexBuffer(Renderer *renderer) {
     renderer->meshIndices = createBuffer(renderer, NULL, size, indexUsageFlags, indexMemoryFlags);
 
     copyBuffer(renderer, stageBuffer.buffer, renderer->meshIndices.buffer, size, commandBuffer);
+    destroyBuffer(renderer, stageBuffer);
+
+    renderer->device.free(renderer->commandPool, commandBuffer);
 }
 
-
+void freeMeshBuffers(Renderer *renderer) {
+    destroyBuffer(renderer, renderer->meshVertices);
+    destroyBuffer(renderer, renderer->meshIndices);
+}
 
 
 
