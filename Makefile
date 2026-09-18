@@ -4,7 +4,9 @@ CFLAGS = -std=c++20 -Wall \
 	-I$(VULKAN_SDK)/include \
 	-I/usr/local/include \
 	-I/opt/homebrew/include \
-	-fsanitize=address -g
+	-isystem external \
+	-fsanitize=address -g \
+	-Wno-nullability-completeness
 
 LDFLAGS = \
 	-L$(VULKAN_SDK)/lib -lvulkan \

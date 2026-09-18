@@ -3,9 +3,9 @@
 void createCameraBuffers(Renderer *renderer) {
     renderer->cameraBuffers.reserve(MaxFramesInFlight);
     auto usageFlags = vk::BufferUsageFlagBits::eUniformBuffer;
-    auto memoryFlags = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+    auto allocationFlags = vmaHostAccessWriteNoRead | vmaKeepMapped;
     for (uint32_t i {}; i < MaxFramesInFlight; ++i) {
-        Buffer buffer = createBuffer(renderer, NULL, sizeof(Camera), usageFlags, memoryFlags);
+        Buffer buffer = createBuffer(renderer, NULL, sizeof(Camera), usageFlags, allocationFlags, NULL);
         renderer->cameraBuffers.push_back(buffer);
     }
 

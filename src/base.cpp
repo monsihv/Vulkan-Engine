@@ -1,3 +1,4 @@
+#define VMA_IMPLEMENTATION
 #include "headers/base.h"
 
 #include <ranges>
@@ -93,6 +94,17 @@ void createLogicalDevice(Renderer *renderer) {
     renderer->device = renderer->GPU.createDevice(deviceInfo);
     renderer->graphicsQueue = renderer->device.getQueue(queueIndex, 0);
     renderer->graphicsQueueIndex = queueIndex;
+
+    VmaAllocatorCreateInfo allocatorInfo {0};
+    allocatorInfo.physicalDevice = renderer->GPU;
+    allocatorInfo.device = renderer->device;
+    allocatorInfo.instance = renderer->instance;
+    allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+
+    if (vmaCreateAllocator(&allocatorInfo, &renderer->allocator) != VK_SUCCESS) {
+        fprintf(stderr, "allocator not made properly\n");
+        exit(1);
+    } ;
 }
 
 void createSwapchain(Renderer *renderer) {
@@ -181,6 +193,7 @@ void cleanupSwapchain(Renderer *renderer) {
     for (auto& imageView : renderer->swapchainImageViews) {
         renderer->device.destroy(imageView);
     }
+    renderer->swapchainImageViews.clear();
     renderer->device.destroy(renderer->swapchain);
 }
 

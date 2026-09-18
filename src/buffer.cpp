@@ -3,20 +3,9 @@
 
 #include <stdio.h>
 
-uint32_t findMemoryType(vk::PhysicalDevice gpu, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
-    auto memoryProperties = gpu.getMemoryProperties();
-
-    for (uint32_t i {}; i < memoryProperties.memoryTypeCount; ++i) {
-        if (typeFilter & (1 << i) &&
-            (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) return i;
-    }
-
-    fprintf(stderr, "failed to find suitable memory type!");
-    exit(1);
-}
-
 Buffer createBuffer(Renderer *renderer, const void *data, vk::DeviceSize size,
-                    vk::BufferUsageFlags usageFlags, vk::MemoryPropertyFlags memoryFlags) {
+                    vk::BufferUsageFlags usageFlags, VmaAllocationCreateFlags allocationFlags,
+                    VmaPool pool) {
     Buffer output;
 
     vk::BufferCreateInfo bufferInfo {
@@ -25,26 +14,28 @@ Buffer createBuffer(Renderer *renderer, const void *data, vk::DeviceSize size,
         .sharingMode = vk::SharingMode::eExclusive
     };
 
-    output.buffer = renderer->device.createBuffer(bufferInfo);
-
-    auto memoryRequirements = renderer->device.getBufferMemoryRequirements(output.buffer);
-
-    vk::MemoryAllocateInfo memoryInfo {
-        .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = findMemoryType(renderer->GPU, memoryRequirements.memoryTypeBits, memoryFlags)
+    VmaAllocationCreateInfo allocationInfo {
+        .flags = allocationFlags,
+        .usage = VMA_MEMORY_USAGE_AUTO,
+        .pool = pool
     };
 
-    output.memory = renderer->device.allocateMemory(memoryInfo);
-    renderer->device.bindBufferMemory(output.buffer, output.memory, 0);
-    output.map = renderer->device.mapMemory(output.memory, 0, bufferInfo.size);
-    if (data && (memoryFlags & vk::MemoryPropertyFlagBits::eHostCoherent)) memcpy(output.map, data, bufferInfo.size);
+    VmaAllocationInfo allocationOutputInfo;
+    if (vmaCreateBuffer(renderer->allocator, (VkBufferCreateInfo*)&bufferInfo, &allocationInfo,
+                (VkBuffer*)&output.buffer, &output.memory, &allocationOutputInfo) != VK_SUCCESS) {
+        fprintf(stderr, "buffer not made via vma\n");
+        exit(1);
+    };
+
+    if (allocationFlags & vmaKeepMapped) output.map = allocationOutputInfo.pMappedData;
+
+    if (data) memcpy(output.map, data, bufferInfo.size);
 
     return output;
 }
 
 void destroyBuffer(Renderer *renderer, Buffer& buffer) {
-    renderer->device.free(buffer.memory);
-    renderer->device.destroy(buffer.buffer);
+    vmaDestroyBuffer(renderer->allocator, buffer.buffer, buffer.memory);
     buffer.map = nullptr;
 }
 

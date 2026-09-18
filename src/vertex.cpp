@@ -14,18 +14,17 @@ void createVertexBuffer(Renderer *renderer) {
     auto size = sizeof(renderer->mesh[0]) * renderer->mesh.size();
 
     auto stageUsageFlags = vk::BufferUsageFlagBits::eTransferSrc;
-    auto stageMemoryFlags = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
-    auto stageBuffer = createBuffer(renderer, data, size, stageUsageFlags, stageMemoryFlags);
+    auto stageAllocationFlags = vmaHostAccessRandom | vmaKeepMapped;
+    auto stageBuffer = createBuffer(renderer, data, size, stageUsageFlags, stageAllocationFlags, NULL);
 
     auto vertexUsageFlags = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
-    auto vertexMemoryFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
-    renderer->meshVertices = createBuffer(renderer, NULL, size, vertexUsageFlags, vertexMemoryFlags);
+    auto vertexAllocationFlags {0u};
+    renderer->meshVertices = createBuffer(renderer, NULL, size, vertexUsageFlags, vertexAllocationFlags, NULL);
 
     copyBuffer(renderer, stageBuffer.buffer, renderer->meshVertices.buffer, size, commandBuffer);
     destroyBuffer(renderer, stageBuffer);
 
     renderer->device.free(renderer->commandPool, commandBuffer);
-
 }
 
 void createIndexBuffer(Renderer *renderer) {
@@ -40,12 +39,12 @@ void createIndexBuffer(Renderer *renderer) {
     auto size = sizeof(renderer->indices[0]) * renderer->indices.size();
 
     auto stageUsageFlags = vk::BufferUsageFlagBits::eTransferSrc;
-    auto stageMemoryFlags = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
-    auto stageBuffer = createBuffer(renderer, data, size, stageUsageFlags, stageMemoryFlags);
+    auto stageAllocationFlags = vmaHostAccessRandom | vmaKeepMapped;
+    auto stageBuffer = createBuffer(renderer, data, size, stageUsageFlags, stageAllocationFlags, NULL);
 
     auto indexUsageFlags = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
-    auto indexMemoryFlags = vk::MemoryPropertyFlagBits::eDeviceLocal;
-    renderer->meshIndices = createBuffer(renderer, NULL, size, indexUsageFlags, indexMemoryFlags);
+    auto indexAllocationFlags {0u};
+    renderer->meshIndices = createBuffer(renderer, NULL, size, indexUsageFlags, indexAllocationFlags, NULL);
 
     copyBuffer(renderer, stageBuffer.buffer, renderer->meshIndices.buffer, size, commandBuffer);
     destroyBuffer(renderer, stageBuffer);

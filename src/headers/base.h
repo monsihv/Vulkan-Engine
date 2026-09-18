@@ -1,11 +1,10 @@
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN
-#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 
 #include <GLFW/glfw3.h>
-#include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan.hpp>
+
+#include "include.h"
 
 #include <vector>
 
@@ -67,6 +66,8 @@ class Renderer {
         vk::Device device;
         vk::Queue graphicsQueue;
         uint32_t graphicsQueueIndex;
+
+        VmaAllocator allocator;
 
         vk::SwapchainKHR swapchain;
         std::vector<vk::Image> swapchainImages;
@@ -165,6 +166,7 @@ class Renderer {
             freeCameraBuffers(this);
             device.destroy(uniformBufferDescriptorPool);
             cleanupSwapchain(this);
+            vmaDestroyAllocator(allocator);
             device.destroy();
             instance.destroy(surface);
             instance.destroy();
