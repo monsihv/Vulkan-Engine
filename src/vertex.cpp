@@ -2,6 +2,8 @@
 #include "headers/buffer.h"
 #include "headers/base.h"
 
+#include <string.h>
+
 void createVertexBuffer(Renderer *renderer) {
     vk::CommandBufferAllocateInfo commandBufferInfo {
         .commandPool = renderer->commandPool,

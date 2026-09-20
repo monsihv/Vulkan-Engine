@@ -38,7 +38,7 @@ void transitionImageLayout(Renderer *renderer, uint32_t imageIndex,
     renderer->commandBuffers[renderer->frameIndex].pipelineBarrier2(dependencyInfo);
 }
 
-void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex) {
+void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex, double delta_t, glm::vec2 delta_mouse) {
     auto frameIndex = renderer->frameIndex;
 
     renderer->commandBuffers[frameIndex].begin(vk::CommandBufferBeginInfo{});
@@ -74,6 +74,13 @@ void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex) {
     vk::Rect2D scissor {vk::Offset2D(0, 0), renderer->swapchainExtent};
     renderer->commandBuffers[frameIndex].setScissor(0, scissor);
 
+    updateCameraBuffer(renderer, frameIndex, delta_t, delta_mouse);
+
+    renderer->commandBuffers[frameIndex].bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                                            renderer->graphicsPipelineLayout,
+                                                            0u,
+                                                            renderer->cameraBufferDescriptorSets[frameIndex],
+                                                            {});
     renderer->commandBuffers[frameIndex].bindVertexBuffers(0,
                                                           renderer->meshVertices.buffer, {0});
     renderer->commandBuffers[frameIndex].bindIndexBuffer(renderer->meshIndices.buffer, 0, vk::IndexType::eUint16);
@@ -123,6 +130,20 @@ void drawFrame(Renderer *renderer) {
         exit(1);
     }
 
+    auto delta_t = glfwGetTime() - renderer->timer;
+    renderer->timer = glfwGetTime();
+
+    double x, y;
+    glfwGetCursorPos(renderer->window, &x, &y);
+    glm::vec2 pos(x, y);
+
+    auto delta_mouse = pos - renderer->previousCursorPos;
+
+    auto& mousePos = renderer->previousCursorPos;
+    glfwGetCursorPos(renderer->window, &x, &y);
+    mousePos.x = x;
+    mousePos.y = y;
+
     auto [result, imageIndex] = renderer->device.acquireNextImageKHR(renderer->swapchain, UINT64_MAX, 
                                                                      renderer->renderReadySemaphores[frameIndex],
                                                                      nullptr);
@@ -141,7 +162,7 @@ void drawFrame(Renderer *renderer) {
     renderer->device.resetFences(renderer->drawFences[frameIndex]);
 
     renderer->commandBuffers[frameIndex].reset();
-    recordCommandBuffer(renderer, imageIndex);
+    recordCommandBuffer(renderer, imageIndex, delta_t, delta_mouse);
 
     vk::PipelineStageFlags waitDestinationStageMask {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 

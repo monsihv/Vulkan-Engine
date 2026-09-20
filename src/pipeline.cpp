@@ -119,7 +119,8 @@ void createGraphicsPipeline(Renderer *renderer) {
 
     //Pipeline Layout
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo {
-        .setLayoutCount = 0,
+        .setLayoutCount = 1,
+        .pSetLayouts = renderer->cameraBufferDescriptorSetLayouts.data(),
         .pushConstantRangeCount = 0
     };
 

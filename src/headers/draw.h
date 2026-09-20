@@ -7,4 +7,4 @@ void transitionImageLayout(Renderer *renderer, uint32_t imageIndex,
                            vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
                            vk::PipelineStageFlags2 srcStageMask,
                            vk::PipelineStageFlags2 dstStageMask);
-void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex);
+void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex, double delta_t, glm::vec2 delta_mouse);

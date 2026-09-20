@@ -6,7 +6,8 @@ CFLAGS = -std=c++20 -Wall \
 	-I/opt/homebrew/include \
 	-isystem external \
 	-fsanitize=address -g \
-	-Wno-nullability-completeness
+	-Wno-nullability-completeness \
+	-MMD -MP
 
 LDFLAGS = \
 	-L$(VULKAN_SDK)/lib -lvulkan \
@@ -21,6 +22,8 @@ OBJ = $(CPP:src/%.cpp=build/%.o)
 
 main: build/main
 
+-include $(OBJ:.o=.d)
+
 build/main: $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS) -o $@
 
@@ -32,4 +35,4 @@ run: build/main
 	MallocNanoZone=0 ./build/main
 
 clean:
-	rm -f build/*.o build/main
+	rm -f build/*.o build/*.d build/main

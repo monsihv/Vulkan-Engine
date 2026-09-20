@@ -10,6 +10,7 @@
 
 #include "vertex.h"
 #include "buffer.h"
+#include "camera.h"
 
 constexpr int MaxFramesInFlight = 3;
 
@@ -39,6 +40,7 @@ void createUniformBufferDescriptorSets(Renderer *renderer);
 
 //camera.cpp
 void createCameraBuffers(Renderer *renderer);
+void updateCameraBuffer(Renderer *renderer, uint32_t index, double delta_t, glm::vec2 delta_mouse);
 void freeCameraBuffers(Renderer *renderer);
 
 //vertex.cpp
@@ -54,8 +56,8 @@ void destroyDrawSyncPrimitives(Renderer *renderer);
 class Renderer {
     public:
         GLFWwindow *window = nullptr;
-        uint32_t width;
-        uint32_t height;
+        uint32_t width {};
+        uint32_t height {};
         bool framebufferResized = false;
 
         vk::Instance instance;
@@ -83,6 +85,7 @@ class Renderer {
         vk::PipelineLayout graphicsPipelineLayout;
         vk::Pipeline graphicsPipeline;
 
+        CameraState cameraState;
         std::vector<Buffer> cameraBuffers;
 
         std::vector<Vertex> mesh;
@@ -97,6 +100,9 @@ class Renderer {
         std::vector<vk::Semaphore> renderCompleteSemaphores;
         std::vector<vk::Fence> drawFences;
         uint32_t frameIndex {};
+
+        double timer {};
+        glm::vec2 previousCursorPos;
 
     public:
         void run(uint32_t windowWidth, uint32_t windowHeight) {
@@ -122,6 +128,8 @@ class Renderer {
 
             glfwSetWindowUserPointer(window, this);
             glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
 
         static void framebufferResizeCallback(GLFWwindow *window, int width, int height) {
@@ -136,14 +144,14 @@ class Renderer {
             createLogicalDevice(this);
             createSwapchain(this);
             createSwapchainImageViews(this);
-            createGraphicsPipeline(this);
             createCommandPool(this);
+            allocateCommandBuffer(this);
             createDescriptorPools(this);
             createUniformBufferDescriptorSets(this);
             createCameraBuffers(this);
             createVertexBuffer(this);
             createIndexBuffer(this);
-            allocateCommandBuffer(this);
+            createGraphicsPipeline(this);
             createDrawSyncPrimitives(this);
         }
 
