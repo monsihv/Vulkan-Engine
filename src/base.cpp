@@ -213,7 +213,48 @@ void recreateSwapchain(Renderer *renderer) {
     createSwapchainImageViews(renderer);
 }
 
+void createDepthImage(Renderer *renderer) {
+    vk::ImageCreateInfo depthImageInfo {
+        .imageType = vk::ImageType::e2D,
+        .format = vk::Format::eD32Sfloat,
+        .extent = vk::Extent3D{renderer->swapchainExtent.width, renderer->swapchainExtent.height, 1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = vk::SampleCountFlagBits::e1,
+        .tiling = vk::ImageTiling::eOptimal,
+        .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        .sharingMode = vk::SharingMode::eExclusive,
+        .initialLayout = vk::ImageLayout::eUndefined
+    };
 
+    VmaAllocationCreateInfo allocationInfo {
+        .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+        .usage = VMA_MEMORY_USAGE_AUTO
+    };
+
+    auto& depthImage = renderer->depthBuffer.image;
+    auto& depthImageMemory = renderer->depthBuffer.memory;
+    if (vmaCreateImage(renderer->allocator, (VkImageCreateInfo*)&depthImageInfo,
+                &allocationInfo, (VkImage*)&depthImage, &depthImageMemory, NULL) != VK_SUCCESS) {
+        fprintf(stderr, "depth buffer not made properly\n");
+        exit(1);
+    };
+
+    vk::ImageViewCreateInfo imageViewInfo {
+        .image = depthImage,
+        .viewType = vk::ImageViewType::e2D,
+        .format = vk::Format::eD32Sfloat,
+        .subresourceRange = vk::ImageSubresourceRange {
+                                    .aspectMask = vk::ImageAspectFlagBits::eDepth,
+                                    .baseMipLevel = 0,
+                                    .levelCount = 1,
+                                    .baseArrayLayer = 0,
+                                    .layerCount = 1
+                                }
+    };
+
+    renderer->depthBuffer.imageView = renderer->device.createImageView(imageViewInfo);
+}
 
 
 

@@ -11,6 +11,7 @@
 #include "vertex.h"
 #include "buffer.h"
 #include "camera.h"
+#include "image.h"
 
 constexpr int MaxFramesInFlight = 3;
 
@@ -25,6 +26,8 @@ void createSwapchain(Renderer *renderer);
 void createSwapchainImageViews(Renderer *renderer);
 void cleanupSwapchain(Renderer *renderer);
 void recreateSwapchain(Renderer *renderer);
+void createDepthImage(Renderer *renderer);
+void destroyDepthImage(Renderer *renderer);
 
 //pipeline.cpp
 void createGraphicsPipeline(Renderer *renderer);
@@ -38,8 +41,13 @@ void freeCommandBuffers(Renderer *renderer);
 void createDescriptorPools(Renderer *renderer);
 void createUniformBufferDescriptorSets(Renderer *renderer);
 
+//image.cpp
+Image createImage(Renderer *renderer);
+void destroyImage(Renderer *renderer, Image& image, bool hasImageView);
+
 //camera.cpp
 void createCameraBuffers(Renderer *renderer);
+void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta_mouse);
 void updateCameraBuffer(Renderer *renderer, uint32_t index, double delta_t, glm::vec2 delta_mouse);
 void freeCameraBuffers(Renderer *renderer);
 
@@ -75,8 +83,9 @@ class Renderer {
         std::vector<vk::Image> swapchainImages;
         vk::SurfaceFormatKHR swapchainSurfaceFormat;
         vk::Extent2D swapchainExtent;
-
         std::vector<vk::ImageView> swapchainImageViews;
+
+        Image depthBuffer;
 
         vk::DescriptorPool uniformBufferDescriptorPool = nullptr;
         std::vector<vk::DescriptorSetLayout> cameraBufferDescriptorSetLayouts;
@@ -144,6 +153,7 @@ class Renderer {
             createLogicalDevice(this);
             createSwapchain(this);
             createSwapchainImageViews(this);
+            createDepthImage(this);
             createCommandPool(this);
             allocateCommandBuffer(this);
             createDescriptorPools(this);
@@ -173,6 +183,7 @@ class Renderer {
             device.destroy(graphicsPipelineLayout);
             freeCameraBuffers(this);
             device.destroy(uniformBufferDescriptorPool);
+            destroyImage(this, depthBuffer, true);
             cleanupSwapchain(this);
             vmaDestroyAllocator(allocator);
             device.destroy();

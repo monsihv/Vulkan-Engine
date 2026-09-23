@@ -40,22 +40,23 @@ void createCameraBuffers(Renderer *renderer) {
     renderer->device.updateDescriptorSets(descriptorWrites, NULL);
 }
 
-void updateCameraBuffer(Renderer *renderer, uint32_t index, double delta_t, glm::vec2 delta_mouse) {
+void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta_mouse) {
+    auto& cameraPosition = renderer->cameraState.position;
+
     auto mouseSensitivity = renderer->cameraState.mouseSensitivity;
     auto& yaw = renderer->cameraState.yaw;
     auto& pitch = renderer->cameraState.pitch;
     if (glfwGetKey(renderer->window, GLFW_KEY_R)) {
         yaw = 0;
         pitch = 0;
+        cameraPosition = glm::vec3(0, 0, 3);
     }
 
     auto delta_mouse_true = delta_mouse * mouseSensitivity;
     yaw += delta_mouse_true.x;
     pitch += delta_mouse_true.y;
 
-    printf("yaw: %f, pitch: %f", yaw, pitch);
-
-    auto& cameraPosition = renderer->cameraState.position;
+    printf("yaw: %f, pitch: %f\n", yaw, pitch);
 
     float l = glm::cos(pitch);
     float y = glm::sin(pitch);
@@ -104,7 +105,10 @@ void updateCameraBuffer(Renderer *renderer, uint32_t index, double delta_t, glm:
 
     renderer->cameraState.camera.view = view;
     renderer->cameraState.camera.proj = proj;
+}
 
+void updateCameraBuffer(Renderer *renderer, uint32_t index, double delta_t, glm::vec2 delta_mouse) {
+    getKeyInputsForMovement(renderer, delta_t, delta_mouse);
     auto& cameraBuffer = renderer->cameraBuffers[index];
     memcpy(cameraBuffer.map, &renderer->cameraState.camera, sizeof(Camera));
 }
