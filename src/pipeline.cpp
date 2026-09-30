@@ -99,7 +99,11 @@ void createGraphicsPipeline(Renderer *renderer) {
     };
 
     //Depth & Stencil
-    //vk::PipelineDepthStencilStateCreateInfo depthStencilInfo;
+    vk::PipelineDepthStencilStateCreateInfo depthStencilInfo {
+        .depthTestEnable = vk::True,
+        .depthWriteEnable = vk::True,
+        .depthCompareOp = vk::CompareOp::eLessOrEqual,
+    };
 
     //Color Blending
     vk::PipelineColorBlendAttachmentState colorBlendAttachment {
@@ -118,10 +122,17 @@ void createGraphicsPipeline(Renderer *renderer) {
     };
 
     //Pipeline Layout
+    vk::PushConstantRange pushConstantRange {
+        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+        .offset = 0,
+        .size = sizeof(glm::mat4)
+    };
+
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo {
         .setLayoutCount = 1,
         .pSetLayouts = renderer->cameraBufferDescriptorSetLayouts.data(),
-        .pushConstantRangeCount = 0
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &pushConstantRange
     };
 
     renderer->graphicsPipelineLayout = renderer->device.createPipelineLayout(pipelineLayoutInfo);
@@ -138,6 +149,7 @@ void createGraphicsPipeline(Renderer *renderer) {
                                .pViewportState = &viewportInfo,
                                .pRasterizationState = &rasterizationInfo,
                                .pMultisampleState = &multisampleInfo,
+                               .pDepthStencilState = &depthStencilInfo,
                                .pColorBlendState = &colorBlendInfo,
                                .pDynamicState = &dynamicStateInfo,
                                .layout = renderer->graphicsPipelineLayout,

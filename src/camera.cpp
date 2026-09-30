@@ -56,7 +56,7 @@ void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta
     yaw += delta_mouse_true.x;
     pitch += delta_mouse_true.y;
 
-    printf("yaw: %f, pitch: %f\n", yaw, pitch);
+    //printf("yaw: %f, pitch: %f\n", yaw, pitch);
 
     float l = glm::cos(pitch);
     float y = glm::sin(pitch);
@@ -89,7 +89,7 @@ void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta
     if (glfwGetKey(renderer->window, GLFW_KEY_D))
         cameraPosition += -perpMove * delta_pos;
 
-    printf("pos %.2f %.2f %.2f  dt %.4f\n", cameraPosition.x, cameraPosition.y, cameraPosition.z, delta_t);
+    //printf("pos %.2f %.2f %.2f  dt %.4f\n", cameraPosition.x, cameraPosition.y, cameraPosition.z, delta_t);
 
     const auto view = glm::lookAt(
         cameraPosition,
@@ -102,6 +102,10 @@ void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta
         aspect,
         0.1f,
         100.0f);
+
+    auto translation = glm::vec3(sin(renderer->timer) * l, 0, -cos(renderer->timer) * l);
+    auto model = glm::mat4(1.0f);
+    renderer->model = glm::translate(model, translation);
 
     renderer->cameraState.camera.view = view;
     renderer->cameraState.camera.proj = proj;

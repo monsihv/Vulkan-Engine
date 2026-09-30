@@ -16,12 +16,19 @@ struct Camera {
 [[vk::binding(0, 0)]]
 ConstantBuffer<Camera> camera;
 
+struct PushConstants {
+    column_major float4x4 model;
+};
+
+[[vk::push_constant]]
+ConstantBuffer<PushConstants> pc;
+
 [shader("vertex")]
 VecOutput vertMain(VecInput input) {
     VecOutput output;
 
     output.position = float4(input.position, 1);
-    output.position = mul(camera.proj, mul(camera.view, output.position));
+    output.position = mul(camera.proj, mul(camera.view, mul(pc.model, output.position)));
 
     output.color = input.color;
 

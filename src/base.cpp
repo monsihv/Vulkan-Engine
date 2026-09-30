@@ -208,9 +208,11 @@ void recreateSwapchain(Renderer *renderer) {
     renderer->device.waitIdle();
 
     cleanupSwapchain(renderer);
+    cleanupDepthImage(renderer);
 
     createSwapchain(renderer);
     createSwapchainImageViews(renderer);
+    createDepthImage(renderer);
 }
 
 void createDepthImage(Renderer *renderer) {
@@ -256,6 +258,8 @@ void createDepthImage(Renderer *renderer) {
     renderer->depthBuffer.imageView = renderer->device.createImageView(imageViewInfo);
 }
 
-
+void cleanupDepthImage(Renderer *renderer) {
+    destroyImage(renderer, renderer->depthBuffer, true);
+}
 
 

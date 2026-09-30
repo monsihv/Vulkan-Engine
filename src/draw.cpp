@@ -49,7 +49,7 @@ void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex, double delta_t
                           vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                           vk::PipelineStageFlagBits2::eColorAttachmentOutput);
 
-    vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+    vk::ClearValue clearColor = vk::ClearColorValue(0.216f, 0.216f, 0.216f, 0.216f);
     vk::RenderingAttachmentInfo attachmentInfo {
         .imageView = renderer->swapchainImageViews[imageIndex],
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -81,6 +81,11 @@ void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex, double delta_t
                                                             0u,
                                                             renderer->cameraBufferDescriptorSets[frameIndex],
                                                             {});
+
+    renderer->commandBuffers[frameIndex].pushConstants<glm::mat4>(renderer->graphicsPipelineLayout,
+                                                                  vk::ShaderStageFlagBits::eVertex,
+                                                                  0, renderer->model);
+
     renderer->commandBuffers[frameIndex].bindVertexBuffers(0,
                                                           renderer->meshVertices.buffer, {0});
     renderer->commandBuffers[frameIndex].bindIndexBuffer(renderer->meshIndices.buffer, 0, vk::IndexType::eUint16);

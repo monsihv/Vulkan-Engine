@@ -27,7 +27,7 @@ void createSwapchainImageViews(Renderer *renderer);
 void cleanupSwapchain(Renderer *renderer);
 void recreateSwapchain(Renderer *renderer);
 void createDepthImage(Renderer *renderer);
-void destroyDepthImage(Renderer *renderer);
+void cleanupDepthImage(Renderer *renderer);
 
 //pipeline.cpp
 void createGraphicsPipeline(Renderer *renderer);
@@ -101,6 +101,7 @@ class Renderer {
         std::vector<uint16_t> indices;
         Buffer meshVertices;
         Buffer meshIndices;
+        glm::mat4 model;
 
         vk::CommandPool commandPool;
         std::vector<vk::CommandBuffer> commandBuffers;

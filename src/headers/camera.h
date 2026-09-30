@@ -13,6 +13,6 @@ struct CameraState {
     glm::vec3 position {0.0f, 0.0f, 3.0f};
     float yaw {};
     float pitch {};
-    float moveSpeed = 0.5f;
-    float mouseSensitivity = 0.0025f;
+    float moveSpeed = 1.0f;
+    float mouseSensitivity = 0.0035f;
 };
