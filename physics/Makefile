@@ -6,3 +6,6 @@ run:
 
 plot:
 	gnuplot plot.gp && open plot.png
+
+all:
+	make build make run make plot
