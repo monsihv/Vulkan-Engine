@@ -23,7 +23,7 @@ and a full engine, I decided to go with Vulkan.
 I chose C++, but if you see my code, you'll notice its very C like. This is deliberate. I initially started writing it with 
 modern C++ like vulkan tutorial says to, but I ended up scrapping it because I found myself having too much friction between 
 my math and ideas with the actual language. Nothing wrong with modern C++, I  actually like it for certain projects, 
-just not this one. Im going with vulkan.hpp as the header of choice. I decided against RAII for this project because it doesnt fit the mental
+just not this one. Im going with C API as the header of choice. I decided against RAII for this project because it doesnt fit the mental
 model for physics or graphics in this particular case. I'd love to hear on how raii has helped your graphics projects, but for this one, I'm
 sticking with very data oriented design and C style code. 
 
