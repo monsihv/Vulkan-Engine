@@ -6,16 +6,18 @@
 
 #include "include.h"
 
-#include <vector>
-
 #include "vertex.h"
 #include "buffer.h"
 #include "camera.h"
 #include "image.h"
 
 constexpr int MaxFramesInFlight = 3;
+constexpr u32 MaxSwapchainImages = 8;
 
-class Renderer;
+struct Renderer;
+
+//main.cpp
+void run(Renderer *renderer, u32 windowWidth, u32 windowHeight);
 
 //base.cpp
 void createInstance(Renderer *renderer);
@@ -48,7 +50,7 @@ void destroyImage(Renderer *renderer, Image& image, bool hasImageView);
 //camera.cpp
 void createCameraBuffers(Renderer *renderer);
 void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta_mouse);
-void updateCameraBuffer(Renderer *renderer, uint32_t index, double delta_t, glm::vec2 delta_mouse);
+void updateCameraBuffer(Renderer *renderer, u32 index, double delta_t, glm::vec2 delta_mouse);
 void freeCameraBuffers(Renderer *renderer);
 
 //vertex.cpp
@@ -61,136 +63,63 @@ void createDrawSyncPrimitives(Renderer *renderer);
 void drawFrame(Renderer *renderer);
 void destroyDrawSyncPrimitives(Renderer *renderer);
 
-class Renderer {
-    public:
-        GLFWwindow *window = nullptr;
-        uint32_t width {};
-        uint32_t height {};
-        bool framebufferResized = false;
+struct Renderer {
+    // permanent holds data that lives for the whole program (mesh data).
+    // scratch is for temporary query results; save pos, use, arenaPopTo back.
+    Arena *permanent;
+    Arena *scratch;
 
-        vk::Instance instance;
+    GLFWwindow *window;
+    u32 width;
+    u32 height;
+    bool framebufferResized;
 
-        vk::SurfaceKHR surface;
+    VkInstance instance;
 
-        vk::PhysicalDevice GPU;
-        vk::Device device;
-        vk::Queue graphicsQueue;
-        uint32_t graphicsQueueIndex;
+    VkSurfaceKHR surface;
 
-        VmaAllocator allocator;
+    VkPhysicalDevice GPU;
+    VkDevice device;
+    VkQueue graphicsQueue;
+    u32 graphicsQueueIndex;
 
-        vk::SwapchainKHR swapchain;
-        std::vector<vk::Image> swapchainImages;
-        vk::SurfaceFormatKHR swapchainSurfaceFormat;
-        vk::Extent2D swapchainExtent;
-        std::vector<vk::ImageView> swapchainImageViews;
+    VmaAllocator allocator;
 
-        Image depthBuffer;
+    VkSwapchainKHR swapchain;
+    u32 swapchainImageCount;
+    VkImage swapchainImages[MaxSwapchainImages];
+    VkSurfaceFormatKHR swapchainSurfaceFormat;
+    VkExtent2D swapchainExtent;
+    VkImageView swapchainImageViews[MaxSwapchainImages];
 
-        vk::DescriptorPool uniformBufferDescriptorPool = nullptr;
-        std::vector<vk::DescriptorSetLayout> cameraBufferDescriptorSetLayouts;
-        std::vector<vk::DescriptorSet> cameraBufferDescriptorSets;
+    Image depthBuffer;
 
-        vk::PipelineLayout graphicsPipelineLayout;
-        vk::Pipeline graphicsPipeline;
+    VkDescriptorPool uniformBufferDescriptorPool;
+    VkDescriptorSetLayout cameraBufferDescriptorSetLayouts[MaxFramesInFlight];
+    VkDescriptorSet cameraBufferDescriptorSets[MaxFramesInFlight];
 
-        CameraState cameraState;
-        std::vector<Buffer> cameraBuffers;
+    VkPipelineLayout graphicsPipelineLayout;
+    VkPipeline graphicsPipeline;
 
-        std::vector<Vertex> mesh;
-        std::vector<uint16_t> indices;
-        Buffer meshVertices;
-        Buffer meshIndices;
-        glm::mat4 model;
+    CameraState cameraState;
+    Buffer cameraBuffers[MaxFramesInFlight];
 
-        vk::CommandPool commandPool;
-        std::vector<vk::CommandBuffer> commandBuffers;
+    Vertex *mesh;
+    u32 meshCount;
+    u16 *indices;
+    u32 indexCount;
+    Buffer meshVertices;
+    Buffer meshIndices;
+    glm::mat4 model;
 
-        std::vector<vk::Semaphore> renderReadySemaphores;
-        std::vector<vk::Semaphore> renderCompleteSemaphores;
-        std::vector<vk::Fence> drawFences;
-        uint32_t frameIndex {};
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffers[MaxFramesInFlight];
 
-        double timer {};
-        glm::vec2 previousCursorPos;
+    VkSemaphore renderReadySemaphores[MaxFramesInFlight];
+    VkSemaphore renderCompleteSemaphores[MaxSwapchainImages];
+    VkFence drawFences[MaxFramesInFlight];
+    u32 frameIndex;
 
-    public:
-        void run(uint32_t windowWidth, uint32_t windowHeight) {
-            initWindow(windowWidth, windowHeight);
-            initVulkan();
-            mainLoop();
-            cleanup();
-        }
-
-    private:
-        void initWindow(uint32_t windowWidth, uint32_t windowHeight) {
-            glfwInit();
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-            glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
-            window = glfwCreateWindow(windowWidth, windowHeight, "ada wong", nullptr, nullptr);
-
-            int fbWidth, fbHeight;
-            glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-
-            width = (uint32_t)fbWidth;
-            height = (uint32_t)fbHeight;
-
-            glfwSetWindowUserPointer(window, this);
-            glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
-
-        static void framebufferResizeCallback(GLFWwindow *window, int width, int height) {
-            auto app = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
-            app->framebufferResized = true;
-        }
-
-        void initVulkan() {
-            createInstance(this);
-            createSurface(this);
-            selectGPU(this);
-            createLogicalDevice(this);
-            createSwapchain(this);
-            createSwapchainImageViews(this);
-            createDepthImage(this);
-            createCommandPool(this);
-            allocateCommandBuffer(this);
-            createDescriptorPools(this);
-            createUniformBufferDescriptorSets(this);
-            createCameraBuffers(this);
-            createVertexBuffer(this);
-            createIndexBuffer(this);
-            createGraphicsPipeline(this);
-            createDrawSyncPrimitives(this);
-        }
-
-        void mainLoop() {
-            while (!glfwWindowShouldClose(window)) {
-                glfwPollEvents();
-                drawFrame(this);
-            }
-
-            device.waitIdle();
-        }
-
-        void cleanup() {
-            destroyDrawSyncPrimitives(this);
-            freeCommandBuffers(this);
-            device.destroy(commandPool);
-            freeMeshBuffers(this);
-            device.destroy(graphicsPipeline);
-            device.destroy(graphicsPipelineLayout);
-            freeCameraBuffers(this);
-            device.destroy(uniformBufferDescriptorPool);
-            destroyImage(this, depthBuffer, true);
-            cleanupSwapchain(this);
-            vmaDestroyAllocator(allocator);
-            device.destroy();
-            instance.destroy(surface);
-            instance.destroy();
-            glfwDestroyWindow(window);
-            glfwTerminate();
-        }
+    double timer;
+    glm::vec2 previousCursorPos;
 };

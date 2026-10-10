@@ -1,26 +1,26 @@
 #include "headers/base.h"
 
 void createCommandPool(Renderer *renderer) {
-    vk::CommandPoolCreateInfo commandPoolInfo {
-        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+    VkCommandPoolCreateInfo commandPoolInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .queueFamilyIndex = renderer->graphicsQueueIndex
     };
 
-    renderer->commandPool = renderer->device.createCommandPool(commandPoolInfo);
+    VK_CHECK(vkCreateCommandPool(renderer->device, &commandPoolInfo, NULL, &renderer->commandPool));
 }
 
 void allocateCommandBuffer(Renderer *renderer) {
-    vk::CommandBufferAllocateInfo commandBufferInfo {
+    VkCommandBufferAllocateInfo commandBufferInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = renderer->commandPool,
-        .level = vk::CommandBufferLevel::ePrimary,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = MaxFramesInFlight
     };
 
-    renderer->commandBuffers = renderer->device.allocateCommandBuffers(commandBufferInfo);
+    VK_CHECK(vkAllocateCommandBuffers(renderer->device, &commandBufferInfo, renderer->commandBuffers));
 }
 
 void freeCommandBuffers(Renderer *renderer) {
-    for (auto& commandBuffer : renderer->commandBuffers) {
-        renderer->device.free(renderer->commandPool, commandBuffer);
-    }
+    vkFreeCommandBuffers(renderer->device, renderer->commandPool, MaxFramesInFlight, renderer->commandBuffers);
 }

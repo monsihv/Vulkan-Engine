@@ -1,31 +1,30 @@
 #include "headers/base.h"
 #include "headers/buffer.h"
 
-#include <stdio.h>
-
-Buffer createBuffer(Renderer *renderer, const void *data, vk::DeviceSize size,
-                    vk::BufferUsageFlags usageFlags, VmaAllocationCreateFlags allocationFlags,
+Buffer createBuffer(Renderer *renderer, const void *data, VkDeviceSize size,
+                    VkBufferUsageFlags usageFlags, VmaAllocationCreateFlags allocationFlags,
                     VmaPool pool) {
-    Buffer output;
+    Buffer output = {};
 
-    vk::BufferCreateInfo bufferInfo {
+    VkBufferCreateInfo bufferInfo = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         .size = size,
         .usage = usageFlags,
-        .sharingMode = vk::SharingMode::eExclusive
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
     };
 
-    VmaAllocationCreateInfo allocationInfo {
+    VmaAllocationCreateInfo allocationInfo = {
         .flags = allocationFlags,
         .usage = VMA_MEMORY_USAGE_AUTO,
         .pool = pool
     };
 
     VmaAllocationInfo allocationOutputInfo;
-    if (vmaCreateBuffer(renderer->allocator, (VkBufferCreateInfo*)&bufferInfo, &allocationInfo,
-                (VkBuffer*)&output.buffer, &output.memory, &allocationOutputInfo) != VK_SUCCESS) {
+    if (vmaCreateBuffer(renderer->allocator, &bufferInfo, &allocationInfo,
+                &output.buffer, &output.memory, &allocationOutputInfo) != VK_SUCCESS) {
         fprintf(stderr, "buffer not made via vma\n");
         exit(1);
-    };
+    }
 
     if (allocationFlags & vmaKeepMapped) output.map = allocationOutputInfo.pMappedData;
 
@@ -36,73 +35,80 @@ Buffer createBuffer(Renderer *renderer, const void *data, vk::DeviceSize size,
 
 void destroyBuffer(Renderer *renderer, Buffer& buffer) {
     vmaDestroyBuffer(renderer->allocator, buffer.buffer, buffer.memory);
-    buffer.map = nullptr;
+    buffer.map = NULL;
 }
 
-void copyBuffer(Renderer *renderer, vk::Buffer& src, vk::Buffer& dst,
-                vk::DeviceSize size, vk::CommandBuffer& commandBuffer) {
-    commandBuffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+void copyBuffer(Renderer *renderer, VkBuffer src, VkBuffer dst,
+                VkDeviceSize size, VkCommandBuffer commandBuffer) {
+    VkCommandBufferBeginInfo beginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+    };
+    VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-    vk::BufferCopy bufferCopy {
+    VkBufferCopy bufferCopy = {
         .srcOffset = 0,
         .dstOffset = 0,
         .size = size
     };
 
-    commandBuffer.copyBuffer(src, dst, bufferCopy);
+    vkCmdCopyBuffer(commandBuffer, src, dst, 1, &bufferCopy);
 
-    commandBuffer.end();
+    VK_CHECK(vkEndCommandBuffer(commandBuffer));
 
-    vk::SubmitInfo submitInfo {
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 1,
         .pCommandBuffers = &commandBuffer
     };
-    renderer->graphicsQueue.submit(submitInfo, nullptr);
-    renderer->device.waitIdle();
+    VK_CHECK(vkQueueSubmit(renderer->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+    vkDeviceWaitIdle(renderer->device);
 }
 
 void createDescriptorPools(Renderer *renderer) {
-    vk::DescriptorPoolSize descriptorPoolSize {
-        .type = vk::DescriptorType::eUniformBuffer,
+    VkDescriptorPoolSize descriptorPoolSize = {
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = MaxFramesInFlight
     };
 
-    auto deviceProperties = renderer->GPU.getProperties();
-    vk::DescriptorPoolCreateInfo descriptorPoolInfo {
-        .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(renderer->GPU, &deviceProperties);
+    VkDescriptorPoolCreateInfo descriptorPoolInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
         .maxSets = deviceProperties.limits.maxDescriptorSetUniformBuffers,
         .poolSizeCount = 1,
         .pPoolSizes = &descriptorPoolSize
     };
 
-    renderer->uniformBufferDescriptorPool = renderer->device.createDescriptorPool(descriptorPoolInfo);
+    VK_CHECK(vkCreateDescriptorPool(renderer->device, &descriptorPoolInfo, NULL, &renderer->uniformBufferDescriptorPool));
 }
 
 void createUniformBufferDescriptorSets(Renderer *renderer) {
-    vk::DescriptorSetLayoutBinding descriptorSetLayoutBinding {
+    VkDescriptorSetLayoutBinding descriptorSetLayoutBinding = {
         .binding = 0,
-        .descriptorType = vk::DescriptorType::eUniformBuffer,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
     };
 
-    vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutInfo {
+    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .bindingCount = 1,
         .pBindings = &descriptorSetLayoutBinding
     };
 
     auto& descriptorSetLayouts = renderer->cameraBufferDescriptorSetLayouts;
-    descriptorSetLayouts.reserve(MaxFramesInFlight);
-    for (uint32_t i{}; i < MaxFramesInFlight; ++i) {
-        auto descriptorLayout = renderer->device.createDescriptorSetLayout(descriptorSetLayoutInfo, nullptr);
-        descriptorSetLayouts.push_back(descriptorLayout);
+    for (u32 i = 0; i < MaxFramesInFlight; ++i) {
+        VK_CHECK(vkCreateDescriptorSetLayout(renderer->device, &descriptorSetLayoutInfo, NULL, &descriptorSetLayouts[i]));
     }
 
-    vk::DescriptorSetAllocateInfo descriptorSetInfo {
+    VkDescriptorSetAllocateInfo descriptorSetInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .descriptorPool = renderer->uniformBufferDescriptorPool,
-        .descriptorSetCount = static_cast<uint32_t>(descriptorSetLayouts.size()),
-        .pSetLayouts = descriptorSetLayouts.data()
+        .descriptorSetCount = MaxFramesInFlight,
+        .pSetLayouts = descriptorSetLayouts
     };
 
-    renderer->cameraBufferDescriptorSets = renderer->device.allocateDescriptorSets(descriptorSetInfo);
+    VK_CHECK(vkAllocateDescriptorSets(renderer->device, &descriptorSetInfo, renderer->cameraBufferDescriptorSets));
 }

@@ -1,6 +1,6 @@
 CC = clang++
 
-CFLAGS = -std=c++20 -Wall \
+CFLAGS = -std=c++20 -Wall -fno-exceptions -fno-rtti \
 	-I$(VULKAN_SDK)/include \
 	-I/usr/local/include \
 	-I/opt/homebrew/include \

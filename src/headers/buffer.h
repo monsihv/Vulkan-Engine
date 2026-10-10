@@ -6,17 +6,17 @@
 #define vmaHostAccessRandom VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT
 #define vmaKeepMapped VMA_ALLOCATION_CREATE_MAPPED_BIT
 
-class Renderer;
+struct Renderer;
 
 struct Buffer {
-    vk::Buffer buffer = nullptr;
+    VkBuffer buffer;
     VmaAllocation memory;
-    void *map = nullptr;
+    void *map;
 };
 
-Buffer createBuffer(Renderer *renderer, const void *data, vk::DeviceSize size,
-                    vk::BufferUsageFlags usageFlags, VmaAllocationCreateFlags allocationFlags,
+Buffer createBuffer(Renderer *renderer, const void *data, VkDeviceSize size,
+                    VkBufferUsageFlags usageFlags, VmaAllocationCreateFlags allocationFlags,
                     VmaPool pool);
 void destroyBuffer(Renderer *renderer, Buffer& buffer);
-void copyBuffer(Renderer *renderer, vk::Buffer& src, vk::Buffer& dst,
-                vk::DeviceSize size, vk::CommandBuffer& commandBuffer);
+void copyBuffer(Renderer *renderer, VkBuffer src, VkBuffer dst,
+                VkDeviceSize size, VkCommandBuffer commandBuffer);

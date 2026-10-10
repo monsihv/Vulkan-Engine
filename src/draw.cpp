@@ -1,27 +1,27 @@
 #include "headers/base.h"
 #include "headers/draw.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <assert.h>
 
-void transitionImageLayout(Renderer *renderer, uint32_t imageIndex,
-                           vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
-                           vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
-                           vk::PipelineStageFlags2 srcStageMask,
-                           vk::PipelineStageFlags2 dstStageMask) {
+void transitionImageLayout(Renderer *renderer, u32 imageIndex,
+                           VkImageLayout oldLayout, VkImageLayout newLayout,
+                           VkAccessFlags2 srcAccessMask, VkAccessFlags2 dstAccessMask,
+                           VkPipelineStageFlags2 srcStageMask,
+                           VkPipelineStageFlags2 dstStageMask) {
 
-    vk::ImageMemoryBarrier2 barrier {
+    VkImageMemoryBarrier2 barrier = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
         .srcStageMask = srcStageMask,
         .srcAccessMask = srcAccessMask,
         .dstStageMask = dstStageMask,
         .dstAccessMask = dstAccessMask,
         .oldLayout = oldLayout,
         .newLayout = newLayout,
-        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = renderer->swapchainImages[imageIndex],
         .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -29,108 +29,116 @@ void transitionImageLayout(Renderer *renderer, uint32_t imageIndex,
         }
     };
 
-    vk::DependencyInfo dependencyInfo {
-        .dependencyFlags = {},
+    VkDependencyInfo dependencyInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .dependencyFlags = 0,
         .imageMemoryBarrierCount = 1,
         .pImageMemoryBarriers = &barrier
     };
 
-    renderer->commandBuffers[renderer->frameIndex].pipelineBarrier2(dependencyInfo);
+    vkCmdPipelineBarrier2(renderer->commandBuffers[renderer->frameIndex], &dependencyInfo);
 }
 
-void recordCommandBuffer(Renderer *renderer, uint32_t imageIndex, double delta_t, glm::vec2 delta_mouse) {
+void recordCommandBuffer(Renderer *renderer, u32 imageIndex, double delta_t, glm::vec2 delta_mouse) {
     auto frameIndex = renderer->frameIndex;
+    VkCommandBuffer commandBuffer = renderer->commandBuffers[frameIndex];
 
-    renderer->commandBuffers[frameIndex].begin(vk::CommandBufferBeginInfo{});
+    VkCommandBufferBeginInfo beginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
+    };
+    VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
     transitionImageLayout(renderer, imageIndex,
-                          vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, 
-                          {}, vk::AccessFlagBits2::eColorAttachmentWrite,
-                          vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                          vk::PipelineStageFlagBits2::eColorAttachmentOutput);
+                          VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                          0, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                          VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                          VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-    vk::ClearValue clearColor = vk::ClearColorValue(0.216f, 0.216f, 0.216f, 0.216f);
-    vk::RenderingAttachmentInfo attachmentInfo {
+    VkClearValue clearColor = {.color = {{0.216f, 0.216f, 0.216f, 0.216f}}};
+    VkRenderingAttachmentInfo attachmentInfo = {
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .imageView = renderer->swapchainImageViews[imageIndex],
-        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-        .loadOp = vk::AttachmentLoadOp::eClear,
-        .storeOp = vk::AttachmentStoreOp::eStore,
+        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .clearValue = clearColor
     };
 
-    vk::RenderingInfo renderingInfo {
+    VkRenderingInfo renderingInfo = {
+        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
         .renderArea = {.offset = {0, 0}, .extent = renderer->swapchainExtent},
         .layerCount = 1,
         .colorAttachmentCount = 1,
         .pColorAttachments = &attachmentInfo
     };
 
-    renderer->commandBuffers[frameIndex].beginRendering(renderingInfo);
+    vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
-    renderer->commandBuffers[frameIndex].bindPipeline(vk::PipelineBindPoint::eGraphics, renderer->graphicsPipeline);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer->graphicsPipeline);
 
-    vk::Viewport viewport {0.0f, 0.0f, (float)renderer->width, (float)renderer->height, 0.0f, 1.0f};
-    renderer->commandBuffers[frameIndex].setViewport(0, viewport);
-    vk::Rect2D scissor {vk::Offset2D(0, 0), renderer->swapchainExtent};
-    renderer->commandBuffers[frameIndex].setScissor(0, scissor);
+    VkViewport viewport = {0.0f, 0.0f, (float)renderer->width, (float)renderer->height, 0.0f, 1.0f};
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    VkRect2D scissor = {{0, 0}, renderer->swapchainExtent};
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     updateCameraBuffer(renderer, frameIndex, delta_t, delta_mouse);
 
-    renderer->commandBuffers[frameIndex].bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                                            renderer->graphicsPipelineLayout,
-                                                            0u,
-                                                            renderer->cameraBufferDescriptorSets[frameIndex],
-                                                            {});
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            renderer->graphicsPipelineLayout,
+                            0, 1, &renderer->cameraBufferDescriptorSets[frameIndex],
+                            0, NULL);
 
-    renderer->commandBuffers[frameIndex].pushConstants<glm::mat4>(renderer->graphicsPipelineLayout,
-                                                                  vk::ShaderStageFlagBits::eVertex,
-                                                                  0, renderer->model);
+    vkCmdPushConstants(commandBuffer, renderer->graphicsPipelineLayout,
+                       VK_SHADER_STAGE_VERTEX_BIT,
+                       0, sizeof(glm::mat4), &renderer->model);
 
-    renderer->commandBuffers[frameIndex].bindVertexBuffers(0,
-                                                          renderer->meshVertices.buffer, {0});
-    renderer->commandBuffers[frameIndex].bindIndexBuffer(renderer->meshIndices.buffer, 0, vk::IndexType::eUint16);
-    renderer->commandBuffers[frameIndex].drawIndexed(renderer->indices.size(), 1, 0, 0, 0);
+    VkDeviceSize vertexOffset = 0;
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &renderer->meshVertices.buffer, &vertexOffset);
+    vkCmdBindIndexBuffer(commandBuffer, renderer->meshIndices.buffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdDrawIndexed(commandBuffer, renderer->indexCount, 1, 0, 0, 0);
 
-    renderer->commandBuffers[frameIndex].endRendering();
+    vkCmdEndRendering(commandBuffer);
 
     transitionImageLayout(renderer, imageIndex,
-                          vk::ImageLayout::eColorAttachmentOptimal,
-                          vk::ImageLayout::ePresentSrcKHR,
-                          vk::AccessFlagBits2::eColorAttachmentWrite, {}, 
-                          vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                          vk::PipelineStageFlagBits2::eBottomOfPipe);
+                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                          VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, 0,
+                          VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                          VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT);
 
-    renderer->commandBuffers[frameIndex].end();
+    VK_CHECK(vkEndCommandBuffer(commandBuffer));
 }
 
 void createDrawSyncPrimitives(Renderer *renderer) {
-    vk::SemaphoreCreateInfo readySemaphoreInfo {};
-    vk::SemaphoreCreateInfo completeSemaphoreInfo {};
-    vk::FenceCreateInfo drawFenceInfo {
-        .flags = vk::FenceCreateFlagBits::eSignaled
+    VkSemaphoreCreateInfo readySemaphoreInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
+    VkSemaphoreCreateInfo completeSemaphoreInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
+    VkFenceCreateInfo drawFenceInfo = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .flags = VK_FENCE_CREATE_SIGNALED_BIT
     };
 
-    vk::Semaphore semaphore;
-    vk::Fence fence;
-    auto size = renderer->swapchainImages.size();
-    for (size_t i {}; i < size; ++i) {
+    VkDevice device = renderer->device;
+    auto size = renderer->swapchainImageCount;
+    for (u32 i = 0; i < size; ++i) {
         if (i < MaxFramesInFlight) {
-            semaphore = renderer->device.createSemaphore(readySemaphoreInfo);
-            fence = renderer->device.createFence(drawFenceInfo);
-            renderer->renderReadySemaphores.push_back(semaphore);
-            renderer->drawFences.push_back(fence);
+            VK_CHECK(vkCreateSemaphore(device, &readySemaphoreInfo, NULL, &renderer->renderReadySemaphores[i]));
+            VK_CHECK(vkCreateFence(device, &drawFenceInfo, NULL, &renderer->drawFences[i]));
         }
 
-        semaphore = renderer->device.createSemaphore(completeSemaphoreInfo);
-        renderer->renderCompleteSemaphores.emplace_back(semaphore);
+        VK_CHECK(vkCreateSemaphore(device, &completeSemaphoreInfo, NULL, &renderer->renderCompleteSemaphores[i]));
     }
 }
 
 void drawFrame(Renderer *renderer) {
     auto& frameIndex = renderer->frameIndex;
+    VkDevice device = renderer->device;
 
-    auto fenceResult = renderer->device.waitForFences(renderer->drawFences[frameIndex], vk::True, UINT64_MAX);
-    if (fenceResult != vk::Result::eSuccess) {
+    auto fenceResult = vkWaitForFences(device, 1, &renderer->drawFences[frameIndex], VK_TRUE, UINT64_MAX);
+    if (fenceResult != VK_SUCCESS) {
         fprintf(stderr, "failed to wait for fence\n");
         exit(1);
     }
@@ -149,29 +157,31 @@ void drawFrame(Renderer *renderer) {
     mousePos.x = x;
     mousePos.y = y;
 
-    auto [result, imageIndex] = renderer->device.acquireNextImageKHR(renderer->swapchain, UINT64_MAX, 
-                                                                     renderer->renderReadySemaphores[frameIndex],
-                                                                     nullptr);
+    u32 imageIndex = 0;
+    VkResult result = vkAcquireNextImageKHR(device, renderer->swapchain, UINT64_MAX,
+                                            renderer->renderReadySemaphores[frameIndex],
+                                            VK_NULL_HANDLE, &imageIndex);
 
-    if (result == vk::Result::eErrorOutOfDateKHR || 
-        result == vk::Result::eSuboptimalKHR) {
+    if (result == VK_ERROR_OUT_OF_DATE_KHR ||
+        result == VK_SUBOPTIMAL_KHR) {
         recreateSwapchain(renderer);
 
         return;
     }
-    else if (result != vk::Result::eSuccess) {
+    else if (result != VK_SUCCESS) {
         fprintf(stderr, "failed to acquire swapchain image\n");
         exit(1);
     }
 
-    renderer->device.resetFences(renderer->drawFences[frameIndex]);
+    VK_CHECK(vkResetFences(device, 1, &renderer->drawFences[frameIndex]));
 
-    renderer->commandBuffers[frameIndex].reset();
+    VK_CHECK(vkResetCommandBuffer(renderer->commandBuffers[frameIndex], 0));
     recordCommandBuffer(renderer, imageIndex, delta_t, delta_mouse);
 
-    vk::PipelineStageFlags waitDestinationStageMask {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+    VkPipelineStageFlags waitDestinationStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    const vk::SubmitInfo submitInfo {
+    const VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &renderer->renderReadySemaphores[frameIndex],
         .pWaitDstStageMask = &waitDestinationStageMask,
@@ -181,9 +191,10 @@ void drawFrame(Renderer *renderer) {
         .pSignalSemaphores = &renderer->renderCompleteSemaphores[imageIndex]
     };
 
-    renderer->graphicsQueue.submit(submitInfo, renderer->drawFences[frameIndex]);
+    VK_CHECK(vkQueueSubmit(renderer->graphicsQueue, 1, &submitInfo, renderer->drawFences[frameIndex]));
 
-    const vk::PresentInfoKHR presentInfo {
+    const VkPresentInfoKHR presentInfo = {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &renderer->renderCompleteSemaphores[imageIndex],
         .swapchainCount = 1,
@@ -191,35 +202,31 @@ void drawFrame(Renderer *renderer) {
         .pImageIndices = &imageIndex
     };
 
-    auto presentResult = renderer->graphicsQueue.presentKHR(presentInfo);
+    VkResult presentResult = vkQueuePresentKHR(renderer->graphicsQueue, &presentInfo);
 
-    if (presentResult == vk::Result::eErrorOutOfDateKHR || 
-        presentResult == vk::Result::eSuboptimalKHR ||
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR ||
+        presentResult == VK_SUBOPTIMAL_KHR ||
         renderer->framebufferResized) {
 
         renderer->framebufferResized = false;
         recreateSwapchain(renderer);
     }
     else {
-        assert(presentResult == vk::Result::eSuccess);
+        assert(presentResult == VK_SUCCESS);
     }
 
     frameIndex = (frameIndex + 1) % MaxFramesInFlight;
 }
 
 void destroyDrawSyncPrimitives(Renderer *renderer) {
-    auto size = renderer->swapchainImages.size();
-    for (size_t i {}; i < size; ++i) {
+    VkDevice device = renderer->device;
+    auto size = renderer->swapchainImageCount;
+    for (u32 i = 0; i < size; ++i) {
         if (i < MaxFramesInFlight) {
-            renderer->device.destroy(renderer->renderReadySemaphores[i]);
-            renderer->device.destroy(renderer->drawFences[i]);
+            vkDestroySemaphore(device, renderer->renderReadySemaphores[i], NULL);
+            vkDestroyFence(device, renderer->drawFences[i], NULL);
         }
 
-        renderer->device.destroy(renderer->renderCompleteSemaphores[i]);
+        vkDestroySemaphore(device, renderer->renderCompleteSemaphores[i], NULL);
     }
 }
-
-
-
-
-

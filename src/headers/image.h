@@ -3,7 +3,7 @@
 #include "include.h"
 
 struct Image {
-    vk::Image image;
+    VkImage image;
     VmaAllocation memory;
-    vk::ImageView imageView;
+    VkImageView imageView;
 };

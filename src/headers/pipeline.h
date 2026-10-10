@@ -1,5 +1,5 @@
 #pragma once
 
-#include <string_view>
+#include "base.h"
 
-vk::ShaderModule readSpv(Renderer *renderer, const char *fileName);
+VkShaderModule readSpv(Renderer *renderer, const char *fileName);
