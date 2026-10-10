@@ -25,8 +25,8 @@ void makeSphere(Arena *arena, Vertex **outVertices, u32 *outVertexCount,
             float x = r * sinf(theta);
             float z = r * cosf(theta);
 
-            vertices[v].pos   = glm::vec3(x, y, z) * radius;
-            vertices[v].color = glm::vec3(x, y, z) * 0.5f + 0.5f;     // normal-as-color, handy for debug
+            vertices[v].pos   = v3(x, y, z) * radius;
+            vertices[v].color = v3(x, y, z) * 0.5f + v3(0.5f, 0.5f, 0.5f);     // normal-as-color, handy for debug
             v++;
         }
     }
@@ -139,7 +139,7 @@ int main() {
     renderer.permanent = arenaAlloc(MEGABYTE(64));
     renderer.scratch = arenaAlloc(MEGABYTE(16));
 
-    renderer.cameraState.position = glm::vec3(0.0f, 0.0f, 3.0f);
+    renderer.cameraState.position = v3(0.0f, 0.0f, 3.0f);
     renderer.cameraState.moveSpeed = 1.0f;
     renderer.cameraState.mouseSensitivity = 0.0035f;
 

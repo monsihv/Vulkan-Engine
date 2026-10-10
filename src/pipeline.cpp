@@ -138,7 +138,7 @@ void createGraphicsPipeline(Renderer *renderer) {
     VkPushConstantRange pushConstantRange = {
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
         .offset = 0,
-        .size = sizeof(glm::mat4)
+        .size = sizeof(Mat4)
     };
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {

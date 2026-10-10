@@ -39,7 +39,7 @@ void transitionImageLayout(Renderer *renderer, u32 imageIndex,
     vkCmdPipelineBarrier2(renderer->commandBuffers[renderer->frameIndex], &dependencyInfo);
 }
 
-void recordCommandBuffer(Renderer *renderer, u32 imageIndex, double delta_t, glm::vec2 delta_mouse) {
+void recordCommandBuffer(Renderer *renderer, u32 imageIndex, double delta_t, Vec2 delta_mouse) {
     auto frameIndex = renderer->frameIndex;
     VkCommandBuffer commandBuffer = renderer->commandBuffers[frameIndex];
 
@@ -90,7 +90,7 @@ void recordCommandBuffer(Renderer *renderer, u32 imageIndex, double delta_t, glm
 
     vkCmdPushConstants(commandBuffer, renderer->graphicsPipelineLayout,
                        VK_SHADER_STAGE_VERTEX_BIT,
-                       0, sizeof(glm::mat4), &renderer->model);
+                       0, sizeof(Mat4), &renderer->model);
 
     VkDeviceSize vertexOffset = 0;
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &renderer->meshVertices.buffer, &vertexOffset);
@@ -148,14 +148,14 @@ void drawFrame(Renderer *renderer) {
 
     double x, y;
     glfwGetCursorPos(renderer->window, &x, &y);
-    glm::vec2 pos(x, y);
+    Vec2 pos = v2((float)x, (float)y);
 
     auto delta_mouse = pos - renderer->previousCursorPos;
 
     auto& mousePos = renderer->previousCursorPos;
     glfwGetCursorPos(renderer->window, &x, &y);
-    mousePos.x = x;
-    mousePos.y = y;
+    mousePos.X = (float)x;
+    mousePos.Y = (float)y;
 
     u32 imageIndex = 0;
     VkResult result = vkAcquireNextImageKHR(device, renderer->swapchain, UINT64_MAX,

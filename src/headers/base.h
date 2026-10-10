@@ -49,8 +49,8 @@ void destroyImage(Renderer *renderer, Image& image, bool hasImageView);
 
 //camera.cpp
 void createCameraBuffers(Renderer *renderer);
-void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta_mouse);
-void updateCameraBuffer(Renderer *renderer, u32 index, double delta_t, glm::vec2 delta_mouse);
+void getKeyInputsForMovement(Renderer *renderer, double delta_t, Vec2 delta_mouse);
+void updateCameraBuffer(Renderer *renderer, u32 index, double delta_t, Vec2 delta_mouse);
 void freeCameraBuffers(Renderer *renderer);
 
 //vertex.cpp
@@ -110,7 +110,7 @@ struct Renderer {
     u32 indexCount;
     Buffer meshVertices;
     Buffer meshIndices;
-    glm::mat4 model;
+    Mat4 model;
 
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffers[MaxFramesInFlight];
@@ -121,5 +121,5 @@ struct Renderer {
     u32 frameIndex;
 
     double timer;
-    glm::vec2 previousCursorPos;
+    Vec2 previousCursorPos;
 };

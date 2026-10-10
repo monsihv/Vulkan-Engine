@@ -3,8 +3,8 @@
 #include "include.h"
 
 struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
+    Vec3 pos;
+    Vec3 color;
 };
 
 constexpr u32 VertexAttributeCount = 2;

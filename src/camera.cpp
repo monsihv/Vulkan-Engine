@@ -32,7 +32,7 @@ void createCameraBuffers(Renderer *renderer) {
     vkUpdateDescriptorSets(renderer->device, MaxFramesInFlight, descriptorWrites, 0, NULL);
 }
 
-void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta_mouse) {
+void getKeyInputsForMovement(Renderer *renderer, double delta_t, Vec2 delta_mouse) {
     auto& cameraPosition = renderer->cameraState.position;
 
     auto mouseSensitivity = renderer->cameraState.mouseSensitivity;
@@ -41,37 +41,37 @@ void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta
     if (glfwGetKey(renderer->window, GLFW_KEY_R)) {
         yaw = 0;
         pitch = 0;
-        cameraPosition = glm::vec3(0, 0, 3);
+        cameraPosition = v3(0, 0, 3);
     }
 
     auto delta_mouse_true = delta_mouse * mouseSensitivity;
-    yaw += delta_mouse_true.x;
-    pitch += delta_mouse_true.y;
+    yaw += delta_mouse_true.X;
+    pitch += delta_mouse_true.Y;
 
     //printf("yaw: %f, pitch: %f\n", yaw, pitch);
 
-    float l = glm::cos(pitch);
-    float y = glm::sin(pitch);
-    float x = l * glm::sin(yaw);
-    float z = -1.0f * l * glm::cos(yaw);
-    auto forward = glm::vec3(x, y, z);
+    float l = cosf(pitch);
+    float y = sinf(pitch);
+    float x = l * sinf(yaw);
+    float z = -1.0f * l * cosf(yaw);
+    auto forward = v3(x, y, z);
     auto center = cameraPosition + forward;
 
     auto moveSpeed = renderer->cameraState.moveSpeed;
     auto delta_pos = (float)(delta_t * moveSpeed);
 
-    auto normalizedDirection = glm::normalize(glm::vec2(forward.x, forward.z));
-    auto x_change_along = normalizedDirection.x;
-    auto z_change_along = normalizedDirection.y;
+    auto normalizedDirection = normalizeV2(v2(forward.X, forward.Z));
+    auto x_change_along = normalizedDirection.X;
+    auto z_change_along = normalizedDirection.Y;
 
-    auto up_vector = glm::vec3(0, 1, 0);
-    auto perpendicular_change = glm::cross(up_vector, glm::vec3(normalizedDirection.x, 0, normalizedDirection.y));
-    auto perpendicular_change_norm = glm::normalize(perpendicular_change);
-    auto x_change_perp = perpendicular_change_norm.x;
-    auto z_change_perp = perpendicular_change_norm.z;
+    auto up_vector = v3(0, 1, 0);
+    auto perpendicular_change = cross(up_vector, v3(normalizedDirection.X, 0, normalizedDirection.Y));
+    auto perpendicular_change_norm = normalizeV3(perpendicular_change);
+    auto x_change_perp = perpendicular_change_norm.X;
+    auto z_change_perp = perpendicular_change_norm.Z;
 
-    auto alongMove = glm::vec3(x_change_along, 0, z_change_along);
-    auto perpMove = glm::vec3(x_change_perp, 0, z_change_perp);
+    auto alongMove = v3(x_change_along, 0, z_change_along);
+    auto perpMove = v3(x_change_perp, 0, z_change_perp);
     if (glfwGetKey(renderer->window, GLFW_KEY_W))
         cameraPosition += alongMove * delta_pos;
     if (glfwGetKey(renderer->window, GLFW_KEY_A))
@@ -81,29 +81,28 @@ void getKeyInputsForMovement(Renderer *renderer, double delta_t, glm::vec2 delta
     if (glfwGetKey(renderer->window, GLFW_KEY_D))
         cameraPosition += -perpMove * delta_pos;
 
-    //printf("pos %.2f %.2f %.2f  dt %.4f\n", cameraPosition.x, cameraPosition.y, cameraPosition.z, delta_t);
+    //printf("pos %.2f %.2f %.2f  dt %.4f\n", cameraPosition.X, cameraPosition.Y, cameraPosition.Z, delta_t);
 
-    const auto view = glm::lookAt(
+    const auto view = lookAt(
         cameraPosition,
         center,
-        glm::vec3(0, 1, 0));
+        v3(0, 1, 0));
 
     auto aspect = (float)(renderer->swapchainExtent.width) / (renderer->swapchainExtent.height);
-    const auto proj = glm::perspective(
-        glm::radians(45.0f),
+    const auto proj = perspective(
+        radians(45.0f),
         aspect,
         0.1f,
         100.0f);
 
-    auto translation = glm::vec3(sin(renderer->timer) * l, 0, -cos(renderer->timer) * l);
-    auto model = glm::mat4(1.0f);
-    renderer->model = glm::translate(model, translation);
+    auto translation = v3((float)sin(renderer->timer) * l, 0, (float)-cos(renderer->timer) * l);
+    renderer->model = translate(translation);
 
     renderer->cameraState.camera.view = view;
     renderer->cameraState.camera.proj = proj;
 }
 
-void updateCameraBuffer(Renderer *renderer, u32 index, double delta_t, glm::vec2 delta_mouse) {
+void updateCameraBuffer(Renderer *renderer, u32 index, double delta_t, Vec2 delta_mouse) {
     getKeyInputsForMovement(renderer, delta_t, delta_mouse);
     auto& cameraBuffer = renderer->cameraBuffers[index];
     memcpy(cameraBuffer.map, &renderer->cameraState.camera, sizeof(Camera));
