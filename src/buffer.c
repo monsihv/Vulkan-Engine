@@ -33,9 +33,9 @@ Buffer createBuffer(Renderer *renderer, const void *data, VkDeviceSize size,
     return output;
 }
 
-void destroyBuffer(Renderer *renderer, Buffer& buffer) {
-    vmaDestroyBuffer(renderer->allocator, buffer.buffer, buffer.memory);
-    buffer.map = NULL;
+void destroyBuffer(Renderer *renderer, Buffer *buffer) {
+    vmaDestroyBuffer(renderer->allocator, buffer->buffer, buffer->memory);
+    buffer->map = NULL;
 }
 
 void copyBuffer(Renderer *renderer, VkBuffer src, VkBuffer dst,
@@ -98,7 +98,7 @@ void createUniformBufferDescriptorSets(Renderer *renderer) {
         .pBindings = &descriptorSetLayoutBinding
     };
 
-    auto& descriptorSetLayouts = renderer->cameraBufferDescriptorSetLayouts;
+    VkDescriptorSetLayout *descriptorSetLayouts = renderer->cameraBufferDescriptorSetLayouts;
     for (u32 i = 0; i < MaxFramesInFlight; ++i) {
         VK_CHECK(vkCreateDescriptorSetLayout(renderer->device, &descriptorSetLayoutInfo, NULL, &descriptorSetLayouts[i]));
     }

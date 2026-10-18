@@ -20,11 +20,11 @@ void createVertexBuffer(Renderer *renderer) {
     auto stageBuffer = createBuffer(renderer, data, size, stageUsageFlags, stageAllocationFlags, NULL);
 
     VkBufferUsageFlags vertexUsageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    auto vertexAllocationFlags {0u};
+    VmaAllocationCreateFlags vertexAllocationFlags = 0;
     renderer->meshVertices = createBuffer(renderer, NULL, size, vertexUsageFlags, vertexAllocationFlags, NULL);
 
     copyBuffer(renderer, stageBuffer.buffer, renderer->meshVertices.buffer, size, commandBuffer);
-    destroyBuffer(renderer, stageBuffer);
+    destroyBuffer(renderer, &stageBuffer);
 
     vkFreeCommandBuffers(renderer->device, renderer->commandPool, 1, &commandBuffer);
 }
@@ -47,16 +47,16 @@ void createIndexBuffer(Renderer *renderer) {
     auto stageBuffer = createBuffer(renderer, data, size, stageUsageFlags, stageAllocationFlags, NULL);
 
     VkBufferUsageFlags indexUsageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    auto indexAllocationFlags {0u};
+    VmaAllocationCreateFlags indexAllocationFlags = 0;
     renderer->meshIndices = createBuffer(renderer, NULL, size, indexUsageFlags, indexAllocationFlags, NULL);
 
     copyBuffer(renderer, stageBuffer.buffer, renderer->meshIndices.buffer, size, commandBuffer);
-    destroyBuffer(renderer, stageBuffer);
+    destroyBuffer(renderer, &stageBuffer);
 
     vkFreeCommandBuffers(renderer->device, renderer->commandPool, 1, &commandBuffer);
 }
 
 void freeMeshBuffers(Renderer *renderer) {
-    destroyBuffer(renderer, renderer->meshVertices);
-    destroyBuffer(renderer, renderer->meshIndices);
+    destroyBuffer(renderer, &renderer->meshVertices);
+    destroyBuffer(renderer, &renderer->meshIndices);
 }

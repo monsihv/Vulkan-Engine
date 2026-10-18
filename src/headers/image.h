@@ -2,8 +2,8 @@
 
 #include "include.h"
 
-struct Image {
+typedef struct {
     VkImage image;
     VmaAllocation memory;
     VkImageView imageView;
-};
+} Image;

@@ -12,7 +12,7 @@
 
 #define MIN(a, b) (((a) < (b)) ? a : b)
 #define ALIGN_UP_POW2(n, p) (((u64)(n) + ((u64)(p) - 1)) & (~((u64)(p) - 1)))
-#define ARENA_ALIGN (sizeof(void *))
+#define ARENA_ALIGN 16 // ext vectors (Vec4) need 16-byte alignment
 
 typedef struct {
     u64 capacity;

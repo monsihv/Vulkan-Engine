@@ -1,7 +1,7 @@
 #include "headers/arena.h"
 
 Arena *arenaAlloc(u64 capacity) {
-    Arena *arena = (Arena *)malloc(capacity);
+    Arena *arena = malloc(capacity);
 
     arena->capacity = capacity;
     arena->pos = sizeof(Arena);
@@ -30,7 +30,7 @@ void *pushArena(Arena *a, u64 size) {
 }
 
 void *pushArenaZero(Arena *a, u64 size) {
-    u8 *out = (u8 *)pushArena(a, size);
+    u8 *out = pushArena(a, size);
     memset(out, 0, size);
 
     return out;

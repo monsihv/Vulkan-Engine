@@ -14,7 +14,7 @@
 constexpr int MaxFramesInFlight = 3;
 constexpr u32 MaxSwapchainImages = 8;
 
-struct Renderer;
+typedef struct Renderer Renderer;
 
 //main.cpp
 void run(Renderer *renderer, u32 windowWidth, u32 windowHeight);
@@ -45,7 +45,7 @@ void createUniformBufferDescriptorSets(Renderer *renderer);
 
 //image.cpp
 Image createImage(Renderer *renderer);
-void destroyImage(Renderer *renderer, Image& image, bool hasImageView);
+void destroyImage(Renderer *renderer, Image *image, bool hasImageView);
 
 //camera.cpp
 void createCameraBuffers(Renderer *renderer);

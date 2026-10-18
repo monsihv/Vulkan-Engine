@@ -25,8 +25,10 @@ void makeSphere(Arena *arena, Vertex **outVertices, u32 *outVertexCount,
             float x = r * sinf(theta);
             float z = r * cosf(theta);
 
-            vertices[v].pos   = v3(x, y, z) * radius;
-            vertices[v].color = v3(x, y, z) * 0.5f + v3(0.5f, 0.5f, 0.5f);     // normal-as-color, handy for debug
+            Vec4 normal = dir3(x, y, z);
+            vertices[v].pos   = normal * radius;
+            vertices[v].pos.w = 1.0f;
+            vertices[v].color = normal * 0.5f + 0.5f;     // normal-as-color, handy for debug
             v++;
         }
     }
@@ -116,7 +118,7 @@ static void cleanup(Renderer *renderer) {
     vkDestroyPipelineLayout(device, renderer->graphicsPipelineLayout, NULL);
     freeCameraBuffers(renderer);
     vkDestroyDescriptorPool(device, renderer->uniformBufferDescriptorPool, NULL);
-    destroyImage(renderer, renderer->depthBuffer, true);
+    destroyImage(renderer, &renderer->depthBuffer, true);
     cleanupSwapchain(renderer);
     vmaDestroyAllocator(renderer->allocator);
     vkDestroyDevice(device, NULL);
@@ -139,7 +141,7 @@ int main() {
     renderer.permanent = arenaAlloc(MEGABYTE(64));
     renderer.scratch = arenaAlloc(MEGABYTE(16));
 
-    renderer.cameraState.position = v3(0.0f, 0.0f, 3.0f);
+    renderer.cameraState.position = point3(0.0f, 0.0f, 3.0f);
     renderer.cameraState.moveSpeed = 1.0f;
     renderer.cameraState.mouseSensitivity = 0.0035f;
 

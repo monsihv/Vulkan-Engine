@@ -1,5 +1,5 @@
 make build:
-	clang++ -std=c++20 -I/opt/homebrew/opt/glm/include main.cpp -o main
+	clang -std=c23 -fenable-matrix main.c -o main
 
 run:
 	./main | awk -F'[:,] *' '{print $$2, $$4, $$6}' > data.dat

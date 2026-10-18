@@ -3,16 +3,16 @@
 #include "include.h"
 #include "buffer.h"
 
-struct Camera {
+typedef struct {
     Mat4 view;
     Mat4 proj;
-};
+} Camera;
 
-struct CameraState {
+typedef struct {
     Camera camera;
-    Vec3 position;
+    Vec4 position;   // point, w = 1
     float yaw;
     float pitch;
     float moveSpeed;
     float mouseSensitivity;
-};
+} CameraState;

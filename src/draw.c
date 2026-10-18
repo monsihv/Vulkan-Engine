@@ -134,7 +134,7 @@ void createDrawSyncPrimitives(Renderer *renderer) {
 }
 
 void drawFrame(Renderer *renderer) {
-    auto& frameIndex = renderer->frameIndex;
+    u32 frameIndex = renderer->frameIndex;
     VkDevice device = renderer->device;
 
     auto fenceResult = vkWaitForFences(device, 1, &renderer->drawFences[frameIndex], VK_TRUE, UINT64_MAX);
@@ -148,14 +148,11 @@ void drawFrame(Renderer *renderer) {
 
     double x, y;
     glfwGetCursorPos(renderer->window, &x, &y);
-    Vec2 pos = v2((float)x, (float)y);
+    Vec2 pos = {(float)x, (float)y};
 
     auto delta_mouse = pos - renderer->previousCursorPos;
 
-    auto& mousePos = renderer->previousCursorPos;
-    glfwGetCursorPos(renderer->window, &x, &y);
-    mousePos.X = (float)x;
-    mousePos.Y = (float)y;
+    renderer->previousCursorPos = pos;
 
     u32 imageIndex = 0;
     VkResult result = vkAcquireNextImageKHR(device, renderer->swapchain, UINT64_MAX,
@@ -215,7 +212,7 @@ void drawFrame(Renderer *renderer) {
         assert(presentResult == VK_SUCCESS);
     }
 
-    frameIndex = (frameIndex + 1) % MaxFramesInFlight;
+    renderer->frameIndex = (frameIndex + 1) % MaxFramesInFlight;
 }
 
 void destroyDrawSyncPrimitives(Renderer *renderer) {

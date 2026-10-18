@@ -1,4 +1,3 @@
-#define VMA_IMPLEMENTATION
 #include "headers/base.h"
 
 #include <assert.h>
@@ -8,7 +7,7 @@ static u32 clampU32(u32 value, u32 lo, u32 hi) {
 }
 
 void createInstance(Renderer *renderer) {
-    constexpr VkApplicationInfo appInfo = {
+    const VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pApplicationName = "type type",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -194,8 +193,8 @@ void createSwapchain(Renderer *renderer) {
     auto maxImageExtentWidth = surfaceCapabilities.maxImageExtent.width;
     auto minImageExtentHeight = surfaceCapabilities.minImageExtent.height;
     auto maxImageExtentHeight = surfaceCapabilities.maxImageExtent.height;
-    renderer->swapchainExtent = {clampU32(renderer->width, minImageExtentWidth, maxImageExtentWidth),
-                                 clampU32(renderer->height, minImageExtentHeight, maxImageExtentHeight)};
+    renderer->swapchainExtent = (VkExtent2D){clampU32(renderer->width, minImageExtentWidth, maxImageExtentWidth),
+                                             clampU32(renderer->height, minImageExtentHeight, maxImageExtentHeight)};
 
     u32 minImageCount = surfaceCapabilities.minImageCount;
     auto maxImageCount = surfaceCapabilities.maxImageCount;
@@ -236,7 +235,7 @@ void createSwapchain(Renderer *renderer) {
     VK_CHECK(vkGetSwapchainImagesKHR(renderer->device, renderer->swapchain, &imageCount, renderer->swapchainImages));
     renderer->swapchainImageCount = imageCount;
 
-    renderer->swapchainSurfaceFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+    renderer->swapchainSurfaceFormat = (VkSurfaceFormatKHR){VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 
     arenaPopTo(scratch, scratchPos);
 }
@@ -305,17 +304,16 @@ void createDepthImage(Renderer *renderer) {
         .usage = VMA_MEMORY_USAGE_AUTO
     };
 
-    auto& depthImage = renderer->depthBuffer.image;
-    auto& depthImageMemory = renderer->depthBuffer.memory;
+    Image *depthBuffer = &renderer->depthBuffer;
     if (vmaCreateImage(renderer->allocator, &depthImageInfo,
-                &allocationInfo, &depthImage, &depthImageMemory, NULL) != VK_SUCCESS) {
+                &allocationInfo, &depthBuffer->image, &depthBuffer->memory, NULL) != VK_SUCCESS) {
         fprintf(stderr, "depth buffer not made properly\n");
         exit(1);
     }
 
     VkImageViewCreateInfo imageViewInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .image = depthImage,
+        .image = depthBuffer->image,
         .viewType = VK_IMAGE_VIEW_TYPE_2D,
         .format = VK_FORMAT_D32_SFLOAT,
         .subresourceRange = {
@@ -327,9 +325,9 @@ void createDepthImage(Renderer *renderer) {
         }
     };
 
-    VK_CHECK(vkCreateImageView(renderer->device, &imageViewInfo, NULL, &renderer->depthBuffer.imageView));
+    VK_CHECK(vkCreateImageView(renderer->device, &imageViewInfo, NULL, &depthBuffer->imageView));
 }
 
 void cleanupDepthImage(Renderer *renderer) {
-    destroyImage(renderer, renderer->depthBuffer, true);
+    destroyImage(renderer, &renderer->depthBuffer, true);
 }
