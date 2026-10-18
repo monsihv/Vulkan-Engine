@@ -4,7 +4,7 @@ Classical mechanics was always my favorite physics subject, and I also like vide
 I thought it would be a good idea to tackle a physics engine for 3d games and simulation.
 
 Little did I know that this would need me to learn (and relearn) a ton of math, physics, and computer
-science topics. Luckily for me, C++, linear algebra, differential equations, and physics intuition were all
+science topics. Luckily for me, C, linear algebra, differential equations, and physics intuition were all
 mostly still intact from previous experiences.
 
 This project is different from my other ones. Whereas those are mostly case studies/proof of concept builds,
@@ -14,8 +14,8 @@ may not be super duper clean but I hope to get better at that too.
 
 # Tools
 
-The tools I'll be using are Vulkan (obviously), C++ (obviously), and Slang for shading. I chose this stack more or less because
-its relatively modern compared to most physics sims. 
+The tools I'll be using are Vulkan (obviously), C (obviously), and Slang for shading. I chose this stack more or less because
+its relatively modern compared to most physics sims. Initially started in C++ but I moved back to C for fun. I like it more, sue me.
 
 The ones I see online tend to use OpenGL but since I want to later extrapolate this project to computer graphics 
 and a full engine, I decided to go with Vulkan. 
@@ -25,7 +25,7 @@ modern C++ like vulkan tutorial says to, but I ended up scrapping it because I f
 my math and ideas with the actual language. Nothing wrong with modern C++, I  actually like it for certain projects, 
 just not this one. Im going with C API as the header of choice. I decided against RAII for this project because it doesnt fit the mental
 model for physics or graphics in this particular case. I'd love to hear on how raii has helped your graphics projects, but for this one, I'm
-sticking with very data oriented design and C style code. 
+sticking with very data oriented design and C style code. (Old design decision, I'm now fully on C but principle still stands. Using vector and matrix extensions instead of operator overloading).
 
 I chose Slang for shading because it was the only language I knew and the syntax is very C like so its much less context switching. Also it 
 just feels a bit more modern than something like GLSL.
