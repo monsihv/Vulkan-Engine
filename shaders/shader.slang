@@ -13,11 +13,9 @@ struct Camera {
     column_major float4x4 proj;
 };
 
-[[vk::binding(0, 0)]]
-ConstantBuffer<Camera> camera;
-
 struct PushConstants {
     column_major float4x4 model;
+    Camera *pCameraBuffer;
 };
 
 [[vk::push_constant]]
@@ -27,8 +25,9 @@ ConstantBuffer<PushConstants> pc;
 VecOutput vertMain(VecInput input) {
     VecOutput output;
 
+    Camera *pCamera = pc.pCameraBuffer;
     output.position = float4(input.position, 1);
-    output.position = mul(camera.proj, mul(camera.view, mul(pc.model, output.position)));
+    output.position = mul(pCamera->proj, mul(pCamera->view, mul(pc.model, output.position)));
 
     output.color = input.color;
 

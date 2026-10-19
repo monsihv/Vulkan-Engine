@@ -89,8 +89,6 @@ static void initVulkan(Renderer *renderer) {
     createDepthImage(renderer);
     createCommandPool(renderer);
     allocateCommandBuffer(renderer);
-    createDescriptorPools(renderer);
-    createUniformBufferDescriptorSets(renderer);
     createCameraBuffers(renderer);
     createVertexBuffer(renderer);
     createIndexBuffer(renderer);
@@ -117,7 +115,6 @@ static void cleanup(Renderer *renderer) {
     vkDestroyPipeline(device, renderer->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(device, renderer->graphicsPipelineLayout, NULL);
     freeCameraBuffers(renderer);
-    vkDestroyDescriptorPool(device, renderer->uniformBufferDescriptorPool, NULL);
     destroyImage(renderer, &renderer->depthBuffer, true);
     cleanupSwapchain(renderer);
     vmaDestroyAllocator(renderer->allocator);

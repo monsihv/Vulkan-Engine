@@ -83,14 +83,13 @@ void recordCommandBuffer(Renderer *renderer, u32 imageIndex, double delta_t, Vec
 
     updateCameraBuffer(renderer, frameIndex, delta_t, delta_mouse);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            renderer->graphicsPipelineLayout,
-                            0, 1, &renderer->cameraBufferDescriptorSets[frameIndex],
-                            0, NULL);
-
     vkCmdPushConstants(commandBuffer, renderer->graphicsPipelineLayout,
                        VK_SHADER_STAGE_VERTEX_BIT,
                        0, sizeof(Mat4), &renderer->model);
+
+    vkCmdPushConstants(commandBuffer, renderer->graphicsPipelineLayout,
+                       VK_SHADER_STAGE_VERTEX_BIT,
+                       sizeof(Mat4), sizeof(VkDeviceAddress), &renderer->cameraBufferDeviceAddresses[frameIndex]);
 
     VkDeviceSize vertexOffset = 0;
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &renderer->meshVertices.buffer, &vertexOffset);

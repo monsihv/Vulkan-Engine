@@ -138,13 +138,13 @@ void createGraphicsPipeline(Renderer *renderer) {
     VkPushConstantRange pushConstantRange = {
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
         .offset = 0,
-        .size = sizeof(Mat4)
+        .size = sizeof(Mat4) + sizeof(VkDeviceAddress)
     };
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 1,
-        .pSetLayouts = renderer->cameraBufferDescriptorSetLayouts,
+        .setLayoutCount = 0,
+        .pSetLayouts = NULL,
         .pushConstantRangeCount = 1,
         .pPushConstantRanges = &pushConstantRange
     };
@@ -152,7 +152,6 @@ void createGraphicsPipeline(Renderer *renderer) {
     VK_CHECK(vkCreatePipelineLayout(renderer->device, &pipelineLayoutInfo, NULL, &renderer->graphicsPipelineLayout));
 
     //Pipeline Creation & Dynamic Rendering
-    // Chain: pipelineCreateInfo -> renderingInfo
     VkPipelineRenderingCreateInfo renderingInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
         .pNext = NULL,

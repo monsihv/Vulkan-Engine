@@ -3,33 +3,19 @@
 #include "headers/include.h"
 
 void createCameraBuffers(Renderer *renderer) {
-    VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     auto allocationFlags = vmaHostAccessWriteNoRead | vmaKeepMapped;
+
+    auto cameraDeviceAddresses = &renderer->cameraBufferDeviceAddresses[0];
+    VkBufferDeviceAddressInfo deviceAddressInfo = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+        .pNext = NULL,
+    };
     for (u32 i = 0; i < MaxFramesInFlight; ++i) {
         renderer->cameraBuffers[i] = createBuffer(renderer, NULL, sizeof(Camera), usageFlags, allocationFlags, NULL);
+        deviceAddressInfo.buffer = renderer->cameraBuffers[i].buffer;
+        cameraDeviceAddresses[i] = vkGetBufferDeviceAddress(renderer->device, &deviceAddressInfo);
     }
-
-    VkDescriptorBufferInfo descriptorBufferInfos[MaxFramesInFlight];
-    VkWriteDescriptorSet descriptorWrites[MaxFramesInFlight];
-    for (u32 i = 0; i < MaxFramesInFlight; ++i) {
-        descriptorBufferInfos[i] = (VkDescriptorBufferInfo){
-            .buffer = renderer->cameraBuffers[i].buffer,
-            .offset = 0,
-            .range = VK_WHOLE_SIZE
-        };
-
-        descriptorWrites[i] = (VkWriteDescriptorSet){
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = renderer->cameraBufferDescriptorSets[i],
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .pBufferInfo = &descriptorBufferInfos[i]
-        };
-    }
-
-    vkUpdateDescriptorSets(renderer->device, MaxFramesInFlight, descriptorWrites, 0, NULL);
 }
 
 void getKeyInputsForMovement(Renderer *renderer, double delta_t, Vec2 delta_mouse) {
@@ -111,12 +97,5 @@ void updateCameraBuffer(Renderer *renderer, u32 index, double delta_t, Vec2 delt
 void freeCameraBuffers(Renderer *renderer) {
     for (u32 i = 0; i < MaxFramesInFlight; ++i) {
         destroyBuffer(renderer, &renderer->cameraBuffers[i]);
-    }
-
-    VK_CHECK(vkFreeDescriptorSets(renderer->device, renderer->uniformBufferDescriptorPool,
-                                  MaxFramesInFlight, renderer->cameraBufferDescriptorSets));
-
-    for (u32 i = 0; i < MaxFramesInFlight; ++i) {
-        vkDestroyDescriptorSetLayout(renderer->device, renderer->cameraBufferDescriptorSetLayouts[i], NULL);
     }
 }

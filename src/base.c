@@ -112,9 +112,15 @@ void createLogicalDevice(Renderer *renderer) {
         .dynamicRendering = VK_TRUE
     };
 
+    VkPhysicalDeviceVulkan12Features vulkan12Features = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = &vulkan13Features,
+        .bufferDeviceAddress = VK_TRUE
+    };
+
     VkPhysicalDeviceVulkan11Features vulkan11Features = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
-        .pNext = &vulkan13Features,
+        .pNext = &vulkan12Features,
         .shaderDrawParameters = VK_TRUE
     };
 
@@ -122,6 +128,7 @@ void createLogicalDevice(Renderer *renderer) {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         .pNext = &vulkan11Features
     };
+
 
     const char *requiredDeviceExtensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -140,6 +147,7 @@ void createLogicalDevice(Renderer *renderer) {
 
     VmaAllocatorCreateInfo allocatorInfo = {};
     allocatorInfo.physicalDevice = renderer->GPU;
+    allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     allocatorInfo.device = renderer->device;
     allocatorInfo.instance = renderer->instance;
     allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;

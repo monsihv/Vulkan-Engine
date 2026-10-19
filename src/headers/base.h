@@ -94,15 +94,12 @@ struct Renderer {
 
     Image depthBuffer;
 
-    VkDescriptorPool uniformBufferDescriptorPool;
-    VkDescriptorSetLayout cameraBufferDescriptorSetLayouts[MaxFramesInFlight];
-    VkDescriptorSet cameraBufferDescriptorSets[MaxFramesInFlight];
-
     VkPipelineLayout graphicsPipelineLayout;
     VkPipeline graphicsPipeline;
 
     CameraState cameraState;
     Buffer cameraBuffers[MaxFramesInFlight];
+    VkDeviceAddress cameraBufferDeviceAddresses[MaxFramesInFlight];
 
     Vertex *mesh;
     u32 meshCount;
