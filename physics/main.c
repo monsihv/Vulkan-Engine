@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-// Clang matrix extension (needs -fenable-matrix). Column-major.
 typedef float Mat2 __attribute__((matrix_type(2, 2)));
-typedef float Col2 __attribute__((matrix_type(2, 1)));   // "vectors" are N x 1 matrices
+typedef float Col2 __attribute__((matrix_type(2, 1)));
 typedef float Vec4 __attribute__((ext_vector_type(4)));
 
 static inline Mat2 mat2(float c0x, float c0y, float c1x, float c1y) {
@@ -16,9 +15,6 @@ static inline Col2 col2(float x, float y) {
     return __builtin_matrix_column_major_load(v, 2, 1, 2);
 }
 
-// [a c]        1    [ d -c]
-// [b d]^-1 = ----- [-b  a]
-//            ad-bc
 static inline Mat2 inverse_m2(Mat2 m) {
     float a = m[0][0], c = m[0][1];
     float b = m[1][0], d = m[1][1];
