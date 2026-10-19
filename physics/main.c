@@ -59,7 +59,7 @@ int main(void) {
     constexpr float w = 2.0f * pi;
     constexpr float gamma = 2.0f;
 
-    const Mat2 A = mat2(0.0f, -(w * w), 1.0f, -gamma / m);
+    Mat2 A = mat2(0.0f, -(w * w), 1.0f, -gamma / m);
 
     constexpr uint32_t T = 10;
     constexpr float dt = 0.0011f;
