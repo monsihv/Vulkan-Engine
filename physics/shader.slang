@@ -8,12 +8,21 @@ struct Particle {
     float mass;
 };
 
+struct PushConstants {
+    Particle *particles;
+};
+
+[[vk::push_constant]]
+ConstantBuffer<PushConstants> pc;
+
 [shader("compute")]
 [numthreads(64, 1, 1)]
-void main(RWStructuredBuffer<Particle> particles, uint3 id : SV_DispatchThreadID) {
-    if (id.x >= 1000) return;
+void main (uint3 threadId : SV_DispatchThreadID) {
+    uint id = threadId.x;
+    Particle *particle = &pc.particles[id];
 
-    float g = 9.81f;
-    particles[id.x].velocity.y += -g * particles[id.x].timeStep;
-    particles[id.x].position += particles[id.x].velocity * particles[id.x].timeStep;
+    float dt = particle->timeStep;
+    float3 acceleration = particle->forces / particle->mass;
+    particle->velocity += acceleration * dt;
+    particle->position += particle->velocity * dt;
 }
